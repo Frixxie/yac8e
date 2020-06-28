@@ -1,17 +1,7 @@
-#include <stdlib.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <assert.h>
-#include <getopt.h>
-#include <string.h>
+#include "config.h"
 /* #include "video.h" */
 /* #include "cpu.h" */
 /* #include "filereader.h" */
-
-enum
-{
-   INPUT_FILELEN = 256,
-};
 
 #define ARGS "[--help] [--extended] [--test] [--inputfile] <inputfile>"
 
@@ -45,18 +35,17 @@ int main(int argc, char **argv) {
     int num_options = 0;
     static struct option long_options[] = {
         {"inputfile", 1, NULL, (int)'i'},
-        {"extended", 0, NULL, (int)'e'},
-        {"test", 0, NULL, (int)'t'},
-        {"help", 0, NULL, (int)'h'},
-        {NULL, 0, NULL, 0},
+        {"extended",  0, NULL, (int)'e'},
+        {"test",      0, NULL, (int)'t'},
+        {"help",      0, NULL, (int)'h'},
+        {NULL,        0, NULL, 0},
     };
     while((c = getopt_long(argc, argv, "i:eth", long_options, NULL)) != -1) {
-        printf("%d\n", c);
         switch(c) {
             case 'i':
-                ++num_options;
                 memcpy(input, optarg, strlen(optarg));
                 opts.inputfile = 1;
+                ++num_options;
                 break;
             case 'e':
                 opts.extended = 1;
@@ -76,14 +65,39 @@ int main(int argc, char **argv) {
     }
 
     if(opts.help) {
-        printf("helpflag is set printing helpstuffies\n");
+        printf("helpflag is set printing help\n");
         print_help();
     }
 
-    assert(opts.inputfile);
+    /* if(!opts.inputfile) { */
+    /*     print_help(); */
+    /*     return -1; */
+    /* } */
 
     printf("Input file: %d, %s, Extended: %d, Test: %d, Help: %d\n", opts.inputfile, input, opts.extended, opts.test, opts.help);
 
+    SDL_Window *window = NULL;
+    SDL_Surface *scr_surface = NULL;
+
+    if(SDL_Init(SDL_INIT_VIDEO) < 0) {
+            printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
+            exit(-1);
+    }
+
+    window = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, 0);
+
+    if( window == NULL ) {
+            printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
+            exit(-1);
+        } 
+
+    scr_surface = SDL_GetWindowSurface(window);
+    SDL_FillRect( scr_surface, NULL, SDL_MapRGB(scr_surface->format, 0, 0, 0));
+    SDL_UpdateWindowSurface(window);
+    SDL_Delay(2000);
+
+    SDL_DestroyWindow(window);
+    SDL_Quit();
     return 0;
 }
 
