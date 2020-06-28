@@ -13,6 +13,8 @@ enum
    INPUT_FILELEN = 256,
 };
 
+#define ARGS "[--help] [--extended] [--test] [--inputfile] <inputfile>"
+
 /* Global variables */
 char *progname;
 
@@ -24,8 +26,9 @@ struct options {
     int help;
 };
 
-/*prototypes of local functions */
+/* prototypes of local functions */
 static int init_opts(options_t *opts);
+static void print_help(void);
 
 int main(int argc, char **argv) {
     /* Option handling */
@@ -72,8 +75,9 @@ int main(int argc, char **argv) {
         }
     }
 
-    if(opts.help) { 
-        printf("Helpflag is set printing helpstuffies\n");
+    if(opts.help) {
+        printf("helpflag is set printing helpstuffies\n");
+        print_help();
     }
 
     assert(opts.inputfile);
@@ -89,4 +93,8 @@ static int init_opts(options_t *opts) {
     opts->extended = 0;
     opts->help = 0;
     return 1;
+}
+
+static void print_help(void) {
+    printf("This is %s, usage: %s\n", progname, ARGS);
 }
