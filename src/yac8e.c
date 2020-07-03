@@ -1,21 +1,11 @@
+#include <stdlib.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <assert.h>
+#include <getopt.h>
+#include <string.h>
+#include "screen.h"
 #include "config.h"
-#include <SDL2/SDL_render.h>
-/* #include "video.h" */
-/* #include "cpu.h" */
-/* #include "filereader.h" */
-
-#define ARGS "[--help] [--extended] [--test] [--inputfile] <inputfile>"
-
-/* Global variables */
-char *progname;
-
-typedef struct options options_t;
-struct options {
-    int inputfile;
-    int test;
-    int extended;
-    int help;
-};
 
 /* prototypes of local functions */
 static int init_opts(options_t *opts);
@@ -77,31 +67,25 @@ int main(int argc, char **argv) {
 
     printf("Input file: %d, %s, Extended: %d, Test: %d, Help: %d\n", opts.inputfile, input, opts.extended, opts.test, opts.help);
 
+
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
 
-    if(SDL_Init(SDL_INIT_VIDEO) < 0) {
-            printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
-            exit(-1);
+    if(screen_init(&window, &renderer) < 1) {
+        exit(-1);
     }
 
-    SDL_CreateWindowAndRenderer(640, 320, 0, &window, &renderer);
+    screen_clear(renderer);
 
-    if( window == NULL ) {
-            printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
-            exit(-1);
-        }
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-    SDL_RenderClear(renderer);
+    color_t color;
 
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
-    SDL_RenderDrawLine(renderer, 0, 32 * 10, 16 * 10, 16 * 10);
-    SDL_RenderPresent(renderer);
+    set_color(&color, 255, 255, 255);
+
+    screen_drawline(renderer, &color, 0, 320, 160, 160);
+
     SDL_Delay(2000);
 
-    SDL_DestroyWindow(window);
-    SDL_DestroyRenderer(renderer);
-    SDL_Quit();
+    screen_destroy(window, renderer);
     return 0;
 }
 

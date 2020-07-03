@@ -3,7 +3,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -Wno-unused -Og -g -march=native -pipe 
 
-YAC8EOBS = yac8e.o 
+YAC8EOBS = yac8e.o screen.o
 		   # cpu.o video.o memory.o
 		   #
 all: yac8e
