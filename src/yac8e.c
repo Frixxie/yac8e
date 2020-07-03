@@ -1,4 +1,5 @@
 #include "config.h"
+#include <SDL2/SDL_render.h>
 /* #include "video.h" */
 /* #include "cpu.h" */
 /* #include "filereader.h" */
@@ -77,26 +78,29 @@ int main(int argc, char **argv) {
     printf("Input file: %d, %s, Extended: %d, Test: %d, Help: %d\n", opts.inputfile, input, opts.extended, opts.test, opts.help);
 
     SDL_Window *window = NULL;
-    SDL_Surface *scr_surface = NULL;
+    SDL_Renderer *renderer = NULL;
 
     if(SDL_Init(SDL_INIT_VIDEO) < 0) {
             printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
             exit(-1);
     }
 
-    window = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, 0);
+    SDL_CreateWindowAndRenderer(640, 320, 0, &window, &renderer);
 
     if( window == NULL ) {
             printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
             exit(-1);
-        } 
+        }
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+    SDL_RenderClear(renderer);
 
-    scr_surface = SDL_GetWindowSurface(window);
-    SDL_FillRect( scr_surface, NULL, SDL_MapRGB(scr_surface->format, 0, 0, 0));
-    SDL_UpdateWindowSurface(window);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
+    SDL_RenderDrawLine(renderer, 0, 32 * 10, 16 * 10, 16 * 10);
+    SDL_RenderPresent(renderer);
     SDL_Delay(2000);
 
     SDL_DestroyWindow(window);
+    SDL_DestroyRenderer(renderer);
     SDL_Quit();
     return 0;
 }
