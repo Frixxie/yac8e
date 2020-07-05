@@ -25,10 +25,8 @@ int screen_clear(SDL_Renderer *renderer) {
 
 int screen_drawline(SDL_Renderer *renderer, color_t *color, int posx, int pos2x,int posy, int pos2y){
     //TODO: Check integrety of color
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(renderer);
-    //SDL_SetRenderDrawColor(renderer, color->red, color->green, color->blue, SDL_ALPHA_OPAQUE);
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
+    SDL_SetRenderDrawColor(renderer, color->red, color->green, color->blue, SDL_ALPHA_OPAQUE);
     SDL_RenderDrawLine(renderer, posx, pos2x, posy, pos2y);
     SDL_RenderPresent(renderer);
     return 1;
