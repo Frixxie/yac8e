@@ -1,7 +1,7 @@
 #Makefile 
 
 CC = gcc
-CFLAGS = -Wall -Wextra -Wno-unused -Og -g -march=native -pipe 
+CFLAGS = -Wall -Wextra -Wno-unused -O2 -g -march=native -pipe 
 
 YAC8EOBS = yac8e.o screen.o
 		   # cpu.o video.o memory.o
