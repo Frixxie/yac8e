@@ -7,6 +7,8 @@
 #include "screen.h"
 #include "config.h"
 
+char *progname;
+
 /* prototypes of local functions */
 static int init_opts(options_t *opts);
 static void print_help(void);

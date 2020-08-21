@@ -13,7 +13,6 @@ enum
 #define ARGS "[--help] [--extended] [--test] [--inputfile] <inputfile>"
 
 /* Global variables */
-char *progname;
 
 typedef struct options options_t;
 struct options {
