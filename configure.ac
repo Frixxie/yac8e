@@ -11,7 +11,7 @@ AC_CONFIG_SRCDIR([src/config.h])
 AC_PROG_CC
 
 # Checks for libraries.
-AC_CHECK_LIB([SDL2], [main])
+AC_CHECK_LIB([SDL2], [SDL_Quit])
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h string.h])
