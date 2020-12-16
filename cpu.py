@@ -30,50 +30,58 @@ class C8cpu():
         # corresponding function call
         pass
 
-    def execute(fnptr):
+    def execute(fnptr, opcode):
         pass
 
     def call(self, opcode):
         # opcode 0x0NNN
-        pass
+        print(f"Calling {opcode & 0xFFF}, opcode: {opcode}")
 
     def display_clear(self, screen, opcode):
         # opcode 0x00E0
         # clears the screen
-        pass
+        print(f"Clearing display!, opcode: {opcode}")
+
 
     def flow_return(self, opcode):
         # opcode 0x00EE
         # return from subrutine
-        pass
+        print(f"Returning from subrutine!, opcode: {opcode}")
 
     def call_subrutine(self, opcode):
         # opcode 0x2NNN
         # call subrutine
-        pass
+        print(f"Calling subrutine @ {opcode & 0x0FFF}, opcode: {opcode}")
 
-    def jump_equal_val(self, opcode, registers, pc):
+
+    def skip_if_eqv(self, opcode, registers, pc):
         # opcode 0x3XNN
         # skips next instruction if Vx == NN
         x = opcode & 0x0F00
         value = opcode & 0x00FF
+        print(f"Skipping next instruction if: {registers[x]} == {value}, opcode: {opcode}")
         if registers[x] == value:
+            print("Skipping")
             pc += 2
 
-    def jump_not_equal_val(self, opcode, registers, pc):
+    def skip_if_neqv(self, opcode, registers, pc):
         # opcode 0x4XNN
         # skips next instruction if Vx != NN
         x = opcode & 0x0F00
         value = opcode & 0x00FF
+        print(f"Skipping next instruction if: {registers[x]} != {value}, opcode: {opcode}")
         if registers[x] != value:
+            print("skipping")
             pc += 2
 
-    def jump_equal(self, opcode, registers, pc):
+    def skip_if_eq(self, opcode, registers, pc):
         # opcode 0x5XY0
         # skips next instruction if Vx == Vy
         x = opcode & 0x0F00
         y = opcode & 0x00F0
+        print(f"Skipping next instruction if: {registers[x]} != {registers[y]}, opcode: {opcode}")
         if registers[x] == registers[y]:
+            print("skipping")
             pc += 2
 
     def set_val_const(self, opcode, registers):
@@ -81,6 +89,7 @@ class C8cpu():
         # sets Vx to NN
         x = opcode & 0x0F00
         value = opcode & 0x00FF
+        print(f"Setting register Vx {x} to {value}, opcode: {opcode}")
         registers[x] = value
 
     def add_val_const(self, opcode, registers):
@@ -88,6 +97,7 @@ class C8cpu():
         # adds NN to Vx not changing carry flag
         x = opcode & 0x0F00
         value = opcode & 0x00FF
+        print(f"Adding {value} to x, {x} {registers[x]}, opcode: {opcode}")
         registers[x] += value
 
     def assign_reg(self, opcode, registers):
@@ -95,6 +105,7 @@ class C8cpu():
         # Sets Vx = Vy
         x = opcode & 0x0F00
         y = opcode & 0x00F0
+        print(f"Assigning {registers[y]}, {y} to {registers[x]}, {x}, opcode: {opcode}")
         registers[x] = registers[y]
 
     def bit_op_or(self, opcode, registers):
@@ -102,6 +113,7 @@ class C8cpu():
         # Sets Vx |= Vy
         x = opcode & 0x0F00
         y = opcode & 0x00F0
+        print(f"Oring {registers[y]}, {y} to {registers[x]} {x}, opcode: {opcode}")
         registers[x] = registers[x] | registers[y]
 
     def bit_op_and(self, opcode, registers):
@@ -109,6 +121,7 @@ class C8cpu():
         # Sets Vx &= Vy
         x = opcode & 0x0F00
         y = opcode & 0x00F0
+        print(f"Anding {registers[y]}, {y} to {registers[x]} {x}, opcode: {opcode}")
         registers[x] = registers[x] & registers[y]
 
     def bit_op_xor(self, opcode, registers):
@@ -116,6 +129,7 @@ class C8cpu():
         # Sets Vx ^= Vy
         x = opcode & 0x0F00
         y = opcode & 0x00F0
+        print(f"Xoring {registers[y]}, {y} to {registers[x]} {x}, opcode: {opcode}")
         registers[x] = registers[x] ^ registers[y]
 
     def math_add(self, opcode, registers):
@@ -123,8 +137,19 @@ class C8cpu():
         # Vx += Vy and sets carry flag if Vx overflows
         x = opcode & 0x0F00
         y = opcode & 0x00F0
-        if registers[x] > 0xF:
+        if registers[x] + registers[y] > 0xF:
             registers[0xF] = 1
         else:
             registers[0xF] = 0
         registers[x] += (registers[y] % 0xF)
+
+    def math_sub(self, opcode, registers):
+        # opcode 8XY5
+        # Vx -= Vy and sets carry flag to 0 if there is a borrow and 1 when not
+        x = opcode & 0x0F00
+        y = opcode & 0x00F0
+        if registers[x] - registers[y] > 0:
+            registers[0xF] = 0
+        else:
+            registers[0xF] = 1
+        registers[x] -= (registers[y] % 0xF)
