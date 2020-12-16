@@ -20,7 +20,7 @@ class Yac8pe():
 
     def load_rom(self, rom):
         with open(rom, "rb") as f:
-            counter = 0
+            counter = 0x200
             while True:
                 content = f.read(1)
                 if not content:
