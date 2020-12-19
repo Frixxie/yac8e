@@ -36,6 +36,21 @@ class C8cpu():
         # corresponding args and call function
         pass
 
+    def get_x(self, opcode):
+        return (opcode & 0x0F00) >> 2
+
+    def get_y(self, opcode):
+        return (opcode & 0x00F0) >> 1
+
+    def get_address(self, opcode):
+        return (opcode & 0x0FFF)
+
+    def get_small_const(self, opcode):
+        return (opcode & 0x000F)
+
+    def get_large_const(self, opcode):
+        return (opcode & 0x00FF)
+
     def find_bit_size(self, num):
         size = 0
         while num > 0:
@@ -61,7 +76,6 @@ class C8cpu():
         # clears the screen
         print(f"Clearing display!, opcode: {opcode}")
 
-
     def flow_return(self, opcode):
         # opcode 0x00EE
         # return from subrutine
@@ -72,11 +86,10 @@ class C8cpu():
         # call subrutine
         print(f"Calling subrutine @ {opcode & 0x0FFF}, opcode: {opcode}")
 
-
     def skip_if_eqv(self, opcode, registers, pc):
         # opcode 0x3XNN
         # skips next instruction if Vx == NN
-        x = opcode & 0x0F00
+        x = self.get_x(opcode)
         value = opcode & 0x00FF
         print(f"Skipping next instruction if: {registers[x]} == {value}, opcode: {opcode}")
         if registers[x] == value:
@@ -86,7 +99,7 @@ class C8cpu():
     def skip_if_neqv(self, opcode, registers, pc):
         # opcode 0x4XNN
         # skips next instruction if Vx != NN
-        x = opcode & 0x0F00
+        x = self.get_x(opcode)
         value = opcode & 0x00FF
         print(f"Skipping next instruction if: {registers[x]} != {value}, opcode: {opcode}")
         if registers[x] != value:
@@ -96,8 +109,8 @@ class C8cpu():
     def skip_if_eq(self, opcode, registers, pc):
         # opcode 0x5XY0
         # skips next instruction if Vx == Vy
-        x = opcode & 0x0F00
-        y = opcode & 0x00F0
+        x = self.get_x(opcode)
+        y = self.get_y(opcode)
         print(f"Skipping next instruction if: {registers[x]} != {registers[y]}, opcode: {opcode}")
         if registers[x] == registers[y]:
             print("skipping")
@@ -106,7 +119,7 @@ class C8cpu():
     def set_val_const(self, opcode, registers):
         # opcode 0x6XNN
         # sets Vx to NN
-        x = opcode & 0x0F00
+        x = self.get_x(opcode)
         value = opcode & 0x00FF
         print(f"Setting register Vx {x} to {value}, opcode: {opcode}")
         registers[x] = value
@@ -114,7 +127,7 @@ class C8cpu():
     def add_val_const(self, opcode, registers):
         # opcode 0x7XNN
         # adds NN to Vx not changing carry flag
-        x = opcode & 0x0F00
+        x = self.get_x(opcode)
         value = opcode & 0x00FF
         print(f"Adding {value} to x, {x} {registers[x]}, opcode: {opcode}")
         registers[x] += value
@@ -122,40 +135,40 @@ class C8cpu():
     def assign_reg(self, opcode, registers):
         # opcode 8XY0
         # Sets Vx = Vy
-        x = opcode & 0x0F00
-        y = opcode & 0x00F0
+        x = self.get_x(opcode)
+        y = self.get_y(opcode)
         print(f"Assigning {registers[y]}, {y} to {registers[x]}, {x}, opcode: {opcode}")
         registers[x] = registers[y]
 
     def bit_op_or(self, opcode, registers):
         # opcode 8XY1
         # Sets Vx |= Vy
-        x = opcode & 0x0F00
-        y = opcode & 0x00F0
+        x = self.get_x(opcode)
+        y = self.get_y(opcode)
         print(f"Oring {registers[y]}, {y} to {registers[x]} {x}, opcode: {opcode}")
         registers[x] = registers[x] | registers[y]
 
     def bit_op_and(self, opcode, registers):
         # opcode 8XY2
         # Sets Vx &= Vy
-        x = opcode & 0x0F00
-        y = opcode & 0x00F0
+        x = self.get_x(opcode)
+        y = self.get_y(opcode)
         print(f"Anding {registers[y]}, {y} to {registers[x]} {x}, opcode: {opcode}")
         registers[x] = registers[x] & registers[y]
 
     def bit_op_xor(self, opcode, registers):
         # opcode 8XY3
         # Sets Vx ^= Vy
-        x = opcode & 0x0F00
-        y = opcode & 0x00F0
+        x = self.get_x(opcode)
+        y = self.get_y(opcode)
         print(f"Xoring {registers[y]}, {y} to {registers[x]} {x}, opcode: {opcode}")
         registers[x] = registers[x] ^ registers[y]
 
     def math_add(self, opcode, registers):
         # opcode 8XY4
         # Vx += Vy and sets carry flag if Vx overflows
-        x = opcode & 0x0F00
-        y = opcode & 0x00F0
+        x = self.get_x(opcode)
+        y = self.get_y(opcode)
         if registers[x] + registers[y] > 0xF:
             registers[0xF] = 1
         else:
@@ -165,8 +178,8 @@ class C8cpu():
     def math_sub(self, opcode, registers):
         # opcode 8XY5
         # Vx -= Vy and sets carry flag to 0 if there is a borrow and 1 when not
-        x = opcode & 0x0F00
-        y = opcode & 0x00F0
+        x = self.get_x(opcode)
+        y = self.get_y(opcode)
         if registers[x] - registers[y] < 0:
             registers[0xF] = 0
         else:
@@ -183,8 +196,8 @@ class C8cpu():
     def math_sub_regs(self, opcode, registers):
         # opcode 8XY7
         # Sets Vx to Vy - Vx, Vf is set to 0 when there is a borrow. and 1 when there is not.
-        x = opcode & 0x0F00
-        y = opcode & 0x00F0
+        x = self.get_x(opcode)
+        y = self.get_y(opcode)
         if registers[x] - registers[y] < 0:
             registers[0xF] = 0
         else:
@@ -200,8 +213,8 @@ class C8cpu():
     def skip_if_neqr(self, opcode, registers):
         # opcode 9XY0
         # skips next instruction if Vx != Vy
-        x = opcode & 0x0F00
-        y = opcode & 0x00F0
+        x = self.get_x(opcode)
+        y = self.get_y(opcode)
         print(f"Skipping next instruction if: {registers[x]} != {reigsters[y]}, opcode: {opcode}")
         if registers[x] != registers[y]:
             print("skipping")
@@ -220,29 +233,29 @@ class C8cpu():
     def random_valr(self, opcode, registers):
         # opcode CXNN
         # sets Vx to a random number between 0 and 255 mod NN
-        x = opcode & 0x0F00
+        x = self.get_x(opcode)
         val = opcode & 0x00FF
         registers[x] = randint(0, 255) % val
 
     def display(self, screen, opcode, registers):
         # opcode DXYN
         # draws on screen
-        x = opcode & 0x0F00
-        y = opcode & 0x00F0
+        x = self.get_x(opcode)
+        y = self.get_y(opcode)
         val = opcode & 0x000F
         screen.display(registers[x], registers[y], val)
 
     def key_op_skip_eq(self, pc, opcode, registers):
         # opcode EX9E
         # skips the next instruction if key stored in Vx is set
-        x = opcode & 0x0F00
+        x = self.get_x(opcode)
         if registers[x] > 0:
             pc += 2
 
      def key_op_skip_neq(self, pc, opcode, registers):
         # opcode EXA1
         # skips the next instruction if key stored in Vx is set
-        x = opcode & 0x0F00
+        x = self.get_x(opcode)
         if registers[x] < 0:
             pc += 2
 
@@ -252,8 +265,26 @@ class C8cpu():
         x = opcode & 0x00F0
         registers[x] = delay
 
-    def key_op_get_key(self, opcode, registers):
+    def key_op_get_key(self, opcode, registers, screen):
         # opcode FX0A
         # supposed to wait until a key is pressed and store keypress in Vx
-        x = opcode & 0x0F00
+        x = self.get_x(opcode)
+        registers[x] = screen.get_key()
 
+    def set_delay_timer(self, opcode, registers, delay_timer):
+        # opcode FX15
+        # Sets the delay_timer to Vx
+        x = self.get_x(opcode)
+        delay_timer = registers[x]
+
+    def set_sound_timer(self, opcode, registers, sound_timer):
+        # opcode FX18
+        # Sets the sound_timer to Vx
+        x = self.get_x(opcode)
+        sound_timer = registers[x]
+
+    def mem_add(self, opcode, registers, instruction):
+        # opcode FX1E
+        # adds Vx to I, Vf is not affected
+        x = self.get_x(opcode)
+        i += registers[x]
