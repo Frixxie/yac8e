@@ -12,22 +12,22 @@ class C8cpu():
         self.operations = {}
 
     def fetch(pc, memory):
-        instruction = None
+        index = None
         try:
-            instruction = memory[pc]
+            index = memory[pc]
             if self.big_endianness:
-                instruction <<= 8
-                instruction |= memory[pc + 1]
+                index <<= 8
+                index |= memory[pc + 1]
             else:
-                instruction = (memory[pc + 1] << 8) | instruction
+                index = (memory[pc + 1] << 8) | instruction
         except IndexError:
             print(f"pc {pc} out of memory bounds")
             exit(0)
         pc += 2
-        return instruction
+        return index
 
-    def decode(self, instruction):
-        # The idea is to decode instruction and then return
+    def decode(self, index):
+        # The idea is to decode index and then return
         # corresponding function call
         pass
 
@@ -69,49 +69,56 @@ class C8cpu():
 
     def call(self, opcode):
         # opcode 0x0NNN
+        # execute MLR (machine language routine)
+        address = self.get_address(opcode)
+        pc = address
         print(f"Calling {opcode & 0xFFF}, opcode: {opcode}")
 
     def display_clear(self, screen, opcode):
         # opcode 0x00E0
         # clears the screen
+        screen.clear
         print(f"Clearing display!, opcode: {opcode}")
 
-    def flow_return(self, opcode):
+    def flow_return(self, opcode, stack, pc):
         # opcode 0x00EE
         # return from subrutine
+        address = stack.pop(0)
+        pc = address
         print(f"Returning from subrutine!, opcode: {opcode}")
 
-    def call_subrutine(self, opcode):
+    def call_subrutine(self, pc, opcode):
         # opcode 0x2NNN
         # call subrutine
+        pc = get_address(opcode)
         print(f"Calling subrutine @ {opcode & 0x0FFF}, opcode: {opcode}")
 
     def skip_if_eqv(self, opcode, registers, pc):
         # opcode 0x3XNN
-        # skips next instruction if Vx == NN
+        # skips next index if Vx == NN
         x = self.get_x(opcode)
         value = self.get_large_const(opcode)
-        print(f"Skipping next instruction if: {registers[x]} == {value}, opcode: {opcode}")
+        print(f"Skipping next index if: {registers[x]} == {value}, opcode: {opcode}")
         if registers[x] == value:
             print("Skipping")
             pc += 2
 
     def skip_if_neqv(self, opcode, registers, pc):
         # opcode 0x4XNN
-        # skips next instruction if Vx != NN
+        # skips next index if Vx != NN
         x = self.get_x(opcode)
         value = self.get_large_const(opcode)
-        print(f"Skipping next instruction if: {registers[x]} != {value}, opcode: {opcode}")
+        print(f"Skipping next index if: {registers[x]} != {value}, opcode: {opcode}")
         if registers[x] != value:
             print("skipping")
             pc += 2
 
     def skip_if_eq(self, opcode, registers, pc):
         # opcode 0x5XY0
-        # skips next instruction if Vx == Vy
+        # skips next index if Vx == Vy
         x = self.get_x(opcode)
         y = self.get_y(opcode)
-        print(f"Skipping next instruction if: {registers[x]} != {registers[y]}, opcode: {opcode}")
+        print(f"Skipping next index if: {registers[x]} != {registers[y]}, opcode: {opcode}")
         if registers[x] == registers[y]:
             print("skipping")
             pc += 2
@@ -212,18 +219,18 @@ class C8cpu():
 
     def skip_if_neqr(self, opcode, registers):
         # opcode 9XY0
-        # skips next instruction if Vx != Vy
+        # skips next index if Vx != Vy
         x = self.get_x(opcode)
         y = self.get_y(opcode)
-        print(f"Skipping next instruction if: {registers[x]} != {reigsters[y]}, opcode: {opcode}")
+        print(f"Skipping next index if: {registers[x]} != {reigsters[y]}, opcode: {opcode}")
         if registers[x] != registers[y]:
             print("skipping")
             pc += 2
 
-    def mem_set(self, opcode, instruction):
+    def mem_set(self, opcode, index):
         # opcode ANNN
         # sets I = NNN
-        instruction = get_address(opcode)
+        index = get_address(opcode)
 
     def flow_jmp(self, pc, opcode, registers):
         # opcode BNNN
@@ -247,14 +254,14 @@ class C8cpu():
 
     def key_op_skip_eq(self, pc, opcode, registers):
         # opcode EX9E
-        # skips the next instruction if key stored in Vx is set
+        # skips the next index if key stored in Vx is set
         x = self.get_x(opcode)
         if registers[x] > 0:
             pc += 2
 
      def key_op_skip_neq(self, pc, opcode, registers):
         # opcode EXA1
-        # skips the next instruction if key stored in Vx is set
+        # skips the next index if key stored in Vx is set
         x = self.get_x(opcode)
         if registers[x] < 0:
             pc += 2
@@ -283,8 +290,28 @@ class C8cpu():
         x = self.get_x(opcode)
         sound_timer = registers[x]
 
-    def mem_add(self, opcode, registers, instruction):
+    def mem_add(self, opcode, registers, index):
         # opcode FX1E
         # adds Vx to I, Vf is not affected
         x = self.get_x(opcode)
-        instruction += registers[x]
+        index += registers[x]
+
+    def mem_set_spritaddr(self, opcode, registers, index, sprites):
+        # opcode FX29
+        # Sets I to the location of the sprite[VX]
+        pass
+
+    def binary_coded_decimal_store(self, opcode, registers, index):
+        # opcode FX33
+        # stores the BCD representation of Vx in I
+        pass
+
+    def mem_reg_dump(self, opcode, registers, index):
+        # opcode FX55
+        # stores V0 to VX in memory starting at I, leaves i unchanged
+        pass
+
+    def mem_reg_load(self, opcode, registers, index):
+        # opcode FX65
+        # stores V0 to VX in memory starting at I, leaves i unchanged
+        pass
