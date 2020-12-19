@@ -90,7 +90,7 @@ class C8cpu():
         # opcode 0x3XNN
         # skips next instruction if Vx == NN
         x = self.get_x(opcode)
-        value = opcode & 0x00FF
+        value = self.get_large_const(opcode)
         print(f"Skipping next instruction if: {registers[x]} == {value}, opcode: {opcode}")
         if registers[x] == value:
             print("Skipping")
@@ -100,7 +100,7 @@ class C8cpu():
         # opcode 0x4XNN
         # skips next instruction if Vx != NN
         x = self.get_x(opcode)
-        value = opcode & 0x00FF
+        value = self.get_large_const(opcode)
         print(f"Skipping next instruction if: {registers[x]} != {value}, opcode: {opcode}")
         if registers[x] != value:
             print("skipping")
@@ -120,7 +120,7 @@ class C8cpu():
         # opcode 0x6XNN
         # sets Vx to NN
         x = self.get_x(opcode)
-        value = opcode & 0x00FF
+        value = self.get_large_const(opcode)
         print(f"Setting register Vx {x} to {value}, opcode: {opcode}")
         registers[x] = value
 
@@ -128,7 +128,7 @@ class C8cpu():
         # opcode 0x7XNN
         # adds NN to Vx not changing carry flag
         x = self.get_x(opcode)
-        value = opcode & 0x00FF
+        value = self.get_large_const(opcode)
         print(f"Adding {value} to x, {x} {registers[x]}, opcode: {opcode}")
         registers[x] += value
 
@@ -223,27 +223,27 @@ class C8cpu():
     def mem_set(self, opcode, instruction):
         # opcode ANNN
         # sets I = NNN
-        instruction = opcode & 0x0FFF
+        instruction = get_address(opcode)
 
-    def flow_jmp(self, pc, registers):
+    def flow_jmp(self, pc, opcode, registers):
         # opcode BNNN
         # sets PC to NNN + V0
-        pc = (opcode & 0x0FFF) + registers[0]
+        pc = get_address(opcode) + registers[0]
 
     def random_valr(self, opcode, registers):
         # opcode CXNN
         # sets Vx to a random number between 0 and 255 mod NN
         x = self.get_x(opcode)
-        val = opcode & 0x00FF
-        registers[x] = randint(0, 255) % val
+        value = get_large_const(opcode)
+        registers[x] = randint(0, 255) % value
 
     def display(self, screen, opcode, registers):
         # opcode DXYN
         # draws on screen
         x = self.get_x(opcode)
         y = self.get_y(opcode)
-        val = opcode & 0x000F
-        screen.display(registers[x], registers[y], val)
+        value = get_small_const(opcode)
+        screen.display(registers[x], registers[y], value)
 
     def key_op_skip_eq(self, pc, opcode, registers):
         # opcode EX9E
@@ -262,7 +262,7 @@ class C8cpu():
     def timer_get_delay(self, delay, opcode, registers):
         # opcode FX07
         # Gets the delay timer and stores it in Vx
-        x = opcode & 0x00F0
+        x = self.get_x(opcode)
         registers[x] = delay
 
     def key_op_get_key(self, opcode, registers, screen):
@@ -287,4 +287,4 @@ class C8cpu():
         # opcode FX1E
         # adds Vx to I, Vf is not affected
         x = self.get_x(opcode)
-        i += registers[x]
+        instruction += registers[x]
