@@ -25,13 +25,31 @@ class C8cpu():
         pc += 2
         return instruction
 
-    def decode(instruction):
+    def decode(self, instruction):
         # The idea is to decode instruction and then return
         # corresponding function call
         pass
 
-    def execute(fnptr, opcode):
+    def execute(self, fnptr, opcode):
+        # The idea is to take in fnptr with
+        # corresponding args and call function
         pass
+
+    def find_bit_size(self, num):
+        size = 0
+        while num > 0:
+            num >>= 1
+            size += 1
+        return size
+
+    def find_least_significant_bit(self, num):
+        return num & 1
+
+    def find_most_signigicant_bit(self, num):
+        bit_size = self.find_bit_size(num)
+        msb = 1 << (bit_size - 1)
+        return 1 if num & msb else 0
+
 
     def call(self, opcode):
         # opcode 0x0NNN
@@ -148,8 +166,32 @@ class C8cpu():
         # Vx -= Vy and sets carry flag to 0 if there is a borrow and 1 when not
         x = opcode & 0x0F00
         y = opcode & 0x00F0
-        if registers[x] - registers[y] > 0:
+        if registers[x] - registers[y] < 0:
             registers[0xF] = 0
         else:
             registers[0xF] = 1
         registers[x] -= (registers[y] % 0xF)
+
+    def bit_op_right_shift(self, opcode, registers):
+        # opcode 8XY6
+        # Stores least significant bit in Vf and rightshifts Vx by 1
+        x = opcode & 0x0F0
+        registers[0xF] = self.find_least_significant_bit(registers[x])
+        registers[x] >>= 1
+
+    def math_sub_regs(self, opcode, registers):
+        # opcode 8XY7
+        # Sets Vx to Vy - Vx, Vf is set to 0 when there is a borrow. and 1 when there is not.
+        x = opcode & 0x0F00
+        y = opcode & 0x00F0
+        if registers[x] - registers[y] < 0:
+            registers[0xF] = 0
+        else:
+            registers[0xF] = 1
+        registers[x] = (registers[x] - registers[y]) % 0xF
+
+    def bit_op_left_shift(self, opcode, registers):
+        # opcode 8XYE
+        x = opcode & 0x0F0
+        registers[0xF] = self.find_least_significant_bit(registers[x])
+        registers[x] <<= 1
