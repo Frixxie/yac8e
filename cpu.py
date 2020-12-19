@@ -1,6 +1,7 @@
 #!/bin/python
 
 from sys import exit
+from random import randint
 
 class C8cpu():
     def __init__(self, big_endianness):
@@ -8,8 +9,8 @@ class C8cpu():
         # True or false
         self.big_endianness = big_endianness
         # all the operations which an opcode can map too
-
         self.operations = {}
+
     def fetch(pc, memory):
         instruction = None
         try:
@@ -193,5 +194,66 @@ class C8cpu():
     def bit_op_left_shift(self, opcode, registers):
         # opcode 8XYE
         x = opcode & 0x0F0
-        registers[0xF] = self.find_least_significant_bit(registers[x])
+        registers[0xF] = self.find_most_significant_bit(registers[x])
         registers[x] <<= 1
+
+    def skip_if_neqr(self, opcode, registers):
+        # opcode 9XY0
+        # skips next instruction if Vx != Vy
+        x = opcode & 0x0F00
+        y = opcode & 0x00F0
+        print(f"Skipping next instruction if: {registers[x]} != {reigsters[y]}, opcode: {opcode}")
+        if registers[x] != registers[y]:
+            print("skipping")
+            pc += 2
+
+    def mem_set(self, opcode, instruction):
+        # opcode ANNN
+        # sets I = NNN
+        instruction = opcode & 0x0FFF
+
+    def flow_jmp(self, pc, registers):
+        # opcode BNNN
+        # sets PC to NNN + V0
+        pc = (opcode & 0x0FFF) + registers[0]
+
+    def random_valr(self, opcode, registers):
+        # opcode CXNN
+        # sets Vx to a random number between 0 and 255 mod NN
+        x = opcode & 0x0F00
+        val = opcode & 0x00FF
+        registers[x] = randint(0, 255) % val
+
+    def display(self, screen, opcode, registers):
+        # opcode DXYN
+        # draws on screen
+        x = opcode & 0x0F00
+        y = opcode & 0x00F0
+        val = opcode & 0x000F
+        screen.display(registers[x], registers[y], val)
+
+    def key_op_skip_eq(self, pc, opcode, registers):
+        # opcode EX9E
+        # skips the next instruction if key stored in Vx is set
+        x = opcode & 0x0F00
+        if registers[x] > 0:
+            pc += 2
+
+     def key_op_skip_neq(self, pc, opcode, registers):
+        # opcode EXA1
+        # skips the next instruction if key stored in Vx is set
+        x = opcode & 0x0F00
+        if registers[x] < 0:
+            pc += 2
+
+    def timer_get_delay(self, delay, opcode, registers):
+        # opcode FX07
+        # Gets the delay timer and stores it in Vx
+        x = opcode & 0x00F0
+        registers[x] = delay
+
+    def key_op_get_key(self, opcode, registers):
+        # opcode FX0A
+        # supposed to wait until a key is pressed and store keypress in Vx
+        x = opcode & 0x0F00
+
