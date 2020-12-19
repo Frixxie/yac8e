@@ -8,6 +8,8 @@ class Yac8pe():
         self.stack = [0 for _ in range(0xF)]
         # Has 16 registers V0 to VF
         self.registers = [0 for _ in range(0xF)]
+        # Index register 
+        self.index = 0
         # The program counter
         self.pc = 0
         # Used for timing events in games can be both set and read
