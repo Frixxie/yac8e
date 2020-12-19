@@ -2,6 +2,7 @@
 
 from sys import exit
 from random import randint
+import unittest
 
 class C8cpu():
     def __init__(self, big_endianness):
@@ -11,23 +12,23 @@ class C8cpu():
         # all the operations which an opcode can map too
         self.operations = {}
 
-    def fetch(pc, memory):
-        index = None
+    def fetch(self, pc, memory):
+        instruction = None
         try:
-            index = memory[pc]
+            instruction = memory[pc]
             if self.big_endianness:
-                index <<= 8
-                index |= memory[pc + 1]
+                instruction <<= 8
+                instruction |= memory[pc + 1]
             else:
-                index = (memory[pc + 1] << 8) | instruction
+                instruction = (memory[pc + 1] << 8) | instruction
         except IndexError:
             print(f"pc {pc} out of memory bounds")
             exit(0)
         pc += 2
-        return index
+        return pc, instruction
 
-    def decode(self, index):
-        # The idea is to decode index and then return
+    def decode(self, instruction):
+        # The idea is to decode instruction and then return
         # corresponding function call
         pass
 
@@ -37,10 +38,11 @@ class C8cpu():
         pass
 
     def get_x(self, opcode):
-        return (opcode & 0x0F00) >> 2
+        # opcode 0x8ABD = 0xA
+        return (opcode >> 8) & 0xF
 
     def get_y(self, opcode):
-        return (opcode & 0x00F0) >> 1
+        return (opcode >> 4) & 0xF
 
     def get_address(self, opcode):
         return (opcode & 0x0FFF)
@@ -52,6 +54,7 @@ class C8cpu():
         return (opcode & 0x00FF)
 
     def find_bit_size(self, num):
+        #TODO: fix for negative numbers
         size = 0
         while num > 0:
             num >>= 1
@@ -61,11 +64,10 @@ class C8cpu():
     def find_least_significant_bit(self, num):
         return num & 1
 
+
     def find_most_signigicant_bit(self, num):
         bit_size = self.find_bit_size(num)
-        msb = 1 << (bit_size - 1)
-        return 1 if num & msb else 0
-
+        return 1 << (bit_size - 1)
 
     def call(self, opcode):
         # opcode 0x0NNN
@@ -77,7 +79,7 @@ class C8cpu():
     def display_clear(self, screen, opcode):
         # opcode 0x00E0
         # clears the screen
-        screen.clear
+        screen.clear()
         print(f"Clearing display!, opcode: {opcode}")
 
     def flow_return(self, opcode, stack, pc):
@@ -95,30 +97,30 @@ class C8cpu():
 
     def skip_if_eqv(self, opcode, registers, pc):
         # opcode 0x3XNN
-        # skips next index if Vx == NN
+        # skips next instruction if Vx == NN
         x = self.get_x(opcode)
         value = self.get_large_const(opcode)
-        print(f"Skipping next index if: {registers[x]} == {value}, opcode: {opcode}")
+        print(f"Skipping next instruction if: {registers[x]} == {value}, opcode: {opcode}")
         if registers[x] == value:
             print("Skipping")
             pc += 2
 
     def skip_if_neqv(self, opcode, registers, pc):
         # opcode 0x4XNN
-        # skips next index if Vx != NN
+        # skips next instruction if Vx != NN
         x = self.get_x(opcode)
         value = self.get_large_const(opcode)
-        print(f"Skipping next index if: {registers[x]} != {value}, opcode: {opcode}")
+        print(f"Skipping next instruction if: {registers[x]} != {value}, opcode: {opcode}")
         if registers[x] != value:
             print("skipping")
             pc += 2
 
     def skip_if_eq(self, opcode, registers, pc):
         # opcode 0x5XY0
-        # skips next index if Vx == Vy
+        # skips next instruction if Vx == Vy
         x = self.get_x(opcode)
         y = self.get_y(opcode)
-        print(f"Skipping next index if: {registers[x]} != {registers[y]}, opcode: {opcode}")
+        print(f"Skipping next instruction if: {registers[x]} != {registers[y]}, opcode: {opcode}")
         if registers[x] == registers[y]:
             print("skipping")
             pc += 2
@@ -196,7 +198,7 @@ class C8cpu():
     def bit_op_right_shift(self, opcode, registers):
         # opcode 8XY6
         # Stores least significant bit in Vf and rightshifts Vx by 1
-        x = opcode & 0x0F0
+        x = self.get_x(opcode)
         registers[0xF] = self.find_least_significant_bit(registers[x])
         registers[x] >>= 1
 
@@ -213,16 +215,16 @@ class C8cpu():
 
     def bit_op_left_shift(self, opcode, registers):
         # opcode 8XYE
-        x = opcode & 0x0F0
+        x = self.get_x(opcode)
         registers[0xF] = self.find_most_significant_bit(registers[x])
         registers[x] <<= 1
 
     def skip_if_neqr(self, opcode, registers):
         # opcode 9XY0
-        # skips next index if Vx != Vy
+        # skips next instruction if Vx != Vy
         x = self.get_x(opcode)
         y = self.get_y(opcode)
-        print(f"Skipping next index if: {registers[x]} != {reigsters[y]}, opcode: {opcode}")
+        print(f"Skipping next instruction if: {registers[x]} != {reigsters[y]}, opcode: {opcode}")
         if registers[x] != registers[y]:
             print("skipping")
             pc += 2
@@ -259,7 +261,7 @@ class C8cpu():
         if registers[x] > 0:
             pc += 2
 
-     def key_op_skip_neq(self, pc, opcode, registers):
+    def key_op_skip_neq(self, pc, opcode, registers):
         # opcode EXA1
         # skips the next index if key stored in Vx is set
         x = self.get_x(opcode)
@@ -315,3 +317,72 @@ class C8cpu():
         # opcode FX65
         # stores V0 to VX in memory starting at I, leaves i unchanged
         pass
+
+class CpuTester(unittest.TestCase):
+    def test_big_fetch(self):
+        memory = [0xDA, 0xBF]
+        pc = 0
+        cpu = C8cpu(True)
+        pc, opcode = cpu.fetch(pc, memory)
+        self.assertEqual(opcode, 0xDABF)
+        self.assertEqual(pc, 2)
+
+    def test_small_fetch(self):
+        memory = [0xDA, 0xBF]
+        pc = 0
+        cpu = C8cpu(False)
+        pc, opcode = cpu.fetch(pc, memory)
+        self.assertEqual(opcode, 0xBFDA)
+        self.assertEqual(pc, 2)
+
+    def test_get_x(self):
+        cpu = C8cpu(True)
+        opcode = 0x8ABD
+        x = cpu.get_x(opcode)
+        self.assertEqual(x, 0xA)
+
+    def test_get_y(self):
+        cpu = C8cpu(True)
+        opcode = 0x8ABD
+        y = cpu.get_y(opcode)
+        self.assertEqual(y, 0xB)
+
+    def test_get_address(self):
+        cpu = C8cpu(True)
+        opcode = 0x8ABD
+        address = cpu.get_address(opcode)
+        self.assertEqual(address, 0xABD)
+
+    def test_get_small_const(self):
+        cpu = C8cpu(True)
+        opcode = 0x8ABD
+        const = cpu.get_small_const(opcode)
+        self.assertEqual(const, 0xD)
+
+    def test_get_large_const(self):
+        cpu = C8cpu(True)
+        opcode = 0x8ABD
+        const = cpu.get_large_const(opcode)
+        self.assertEqual(const, 0xBD)
+
+    def test_find_bit_size(self):
+        cpu = C8cpu(True)
+        bit_size = cpu.find_bit_size(17)
+        self.assertEqual(bit_size, 5)
+
+    def test_find_least_significant_bit(self):
+        cpu = C8cpu(True)
+        bit_set = cpu.find_least_significant_bit(3)
+        bit_nset = cpu.find_least_significant_bit(4)
+        self.assertEqual(bit_set, 1)
+        self.assertEqual(bit_nset, 0)
+
+    def test_find_least_significant_bit(self):
+        cpu = C8cpu(True)
+        bit_set = cpu.find_most_signigicant_bit(9)
+        bit_nset = cpu.find_most_signigicant_bit(128)
+        self.assertEqual(bit_set, 128)
+        self.assertEqual(bit_nset, 8)
+
+if __name__ == '__main__':
+    unittest.main()
