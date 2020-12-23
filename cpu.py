@@ -64,7 +64,6 @@ class C8cpu():
     def find_least_significant_bit(self, num):
         return num & 1
 
-
     def find_most_signigicant_bit(self, num):
         bit_size = self.find_bit_size(num)
         return 1 << (bit_size - 1)
