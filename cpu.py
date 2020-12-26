@@ -65,15 +65,15 @@ class C8cpu():
         return num & 1
 
     def find_most_signigicant_bit(self, num):
-        bit_size = self.find_bit_size(num)
-        return 1 << (bit_size - 1)
+        return num & (1 << self.find_bit_size(num) - 1) > 0 if 1 else 0
 
-    def call(self, opcode):
+    def call(self, opcode, pc):
         # opcode 0x0NNN
         # execute MLR (machine language routine)
         address = self.get_address(opcode)
         pc = address
         print(f"Calling {opcode & 0xFFF}, opcode: {opcode}")
+        return pc
 
     def display_clear(self, screen, opcode):
         # opcode 0x00E0
@@ -87,12 +87,14 @@ class C8cpu():
         address = stack.pop(0)
         pc = address
         print(f"Returning from subrutine!, opcode: {opcode}")
+        return pc
 
     def call_subrutine(self, pc, opcode):
         # opcode 0x2NNN
         # call subrutine
-        pc = get_address(opcode)
+        pc = self.get_address(opcode)
         print(f"Calling subrutine @ {opcode & 0x0FFF}, opcode: {opcode}")
+        return pc
 
     def skip_if_eqv(self, opcode, registers, pc):
         # opcode 0x3XNN
@@ -378,10 +380,31 @@ class CpuTester(unittest.TestCase):
 
     def test_find_least_significant_bit(self):
         cpu = C8cpu(True)
-        bit_set = cpu.find_most_signigicant_bit(9)
-        bit_nset = cpu.find_most_signigicant_bit(128)
-        self.assertEqual(bit_set, 128)
-        self.assertEqual(bit_nset, 8)
+        bit_set = cpu.find_most_signigicant_bit(3)
+        self.assertEqual(bit_set, 1)
+
+    def test_call(self):
+        cpu = C8cpu(True)
+        opcode = 0x0ABD
+        pc = 0
+        pc = cpu.call(opcode, pc)
+        self.assertEqual(pc, 0xABD)
+
+    def test_flow_return(self):
+        cpu = C8cpu(True)
+        opcode = 0x8ABD
+        stack = list()
+        stack.append(cpu.get_address(opcode))
+        pc = 0
+        pc = cpu.flow_return(0x00EE, stack, pc)
+        self.assertEqual(pc, 0xABD)
+
+    def test_call_subrutine(self):
+        cpu = C8cpu(True)
+        opcode = 0x2ABD
+        pc = 0
+        pc = cpu.call_subrutine(pc, opcode)
+        self.assertEqual(pc, 0xABD)
 
 if __name__ == '__main__':
     unittest.main()
