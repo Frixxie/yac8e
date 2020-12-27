@@ -5,7 +5,7 @@ class Yac8pe():
         # the memory has 4096 memory locations
         self.memory = [0 for _ in range(0x1000)]
         # The stack could be placed in memory
-        self.stack = [0 for _ in range(0xF)]
+        self.stack = list()
         # Has 16 registers V0 to VF
         self.registers = [0 for _ in range(0xF)]
         # Index register 

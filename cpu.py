@@ -105,6 +105,7 @@ class C8cpu():
         if registers[x] == value:
             print("Skipping")
             pc += 2
+        return pc
 
     def skip_if_neqv(self, opcode, registers, pc):
         # opcode 0x4XNN
@@ -113,8 +114,9 @@ class C8cpu():
         value = self.get_large_const(opcode)
         print(f"Skipping next instruction if: {registers[x]} != {value}, opcode: {opcode}")
         if registers[x] != value:
-            print("skipping")
+            print("Skipping")
             pc += 2
+        return pc
 
     def skip_if_eq(self, opcode, registers, pc):
         # opcode 0x5XY0
@@ -123,8 +125,9 @@ class C8cpu():
         y = self.get_y(opcode)
         print(f"Skipping next instruction if: {registers[x]} != {registers[y]}, opcode: {opcode}")
         if registers[x] == registers[y]:
-            print("skipping")
+            print("Skipping")
             pc += 2
+        return pc
 
     def set_val_const(self, opcode, registers):
         # opcode 0x6XNN
@@ -405,6 +408,99 @@ class CpuTester(unittest.TestCase):
         pc = 0
         pc = cpu.call_subrutine(pc, opcode)
         self.assertEqual(pc, 0xABD)
+
+    def test_skip_if_eqv(self):
+        cpu = C8cpu(True)
+        opcode = 0x3277
+        registers = [0 for _ in range(0xF)]
+        registers[2] = 0x77
+        pc = 0
+        #test if it works
+        pc = cpu.skip_if_eqv(opcode, registers, pc)
+        self.assertEqual(pc, 2)
+        registers[2] = 0x76
+        #test if it works not increasing
+        pc = cpu.skip_if_eqv(opcode, registers, pc)
+        self.assertEqual(pc, 2)
+
+    def test_skip_if_neqv(self):
+        cpu = C8cpu(True)
+        opcode = 0x4277
+        registers = [0 for _ in range(0xF)]
+        registers[2] = 0x77
+        pc = 0
+        #test if it works
+        pc = cpu.skip_if_neqv(opcode, registers, pc)
+        self.assertEqual(pc, 0)
+        registers[2] = 0x76
+        #test if it works working
+        pc = cpu.skip_if_neqv(opcode, registers, pc)
+        self.assertEqual(pc, 2)
+
+    def test_skip_if_eq(self):
+        cpu = C8cpu(True)
+        opcode = 0x5260
+        registers = [0 for _ in range(0xF)]
+        registers[2] = 0x77
+        registers[6] = 0x77
+        pc = 0
+        #test if it works
+        pc = cpu.skip_if_eq(opcode, registers, pc)
+        self.assertEqual(pc, 2)
+        registers[2] = 0x76
+        #test if it works working
+        pc = cpu.skip_if_eq(opcode, registers, pc)
+        self.assertEqual(pc, 2)
+
+    def test_set_val_const(self):
+        cpu = C8cpu(True)
+        opcode = 0x6277
+        registers = [0 for _ in range(0xF)]
+        cpu.set_val_const(opcode, registers)
+        self.assertEqual(registers[2], 0x77)
+
+    def test_add_val_const(self):
+        cpu = C8cpu(True)
+        opcode = 0x7437
+        registers = [0 for _ in range(0xF)]
+        registers[4] = 0x11
+        cpu.add_val_const(opcode, registers)
+        self.assertEqual(registers[4], 0x48)
+
+    def test_assign_reg(self):
+        cpu = C8cpu(True)
+        opcode = 0x8430
+        registers = [0 for _ in range(0xF)]
+        registers[3] = 0x77
+        cpu.assign_reg(opcode, registers)
+        self.assertEqual(registers[3], registers[4]) 
+
+    def test_bit_op_or(self):
+        cpu = C8cpu(True)
+        opcode = 0x8431
+        registers = [0 for _ in range(0xF)]
+        registers[3] = 0x44
+        cpu.bit_op_or(opcode, registers)
+        self.assertEqual(registers[4], 0x44)
+
+    def test_bit_op_and(self):
+        cpu = C8cpu(True)
+        opcode = 0x8432
+        registers = [0 for _ in range(0xF)]
+        registers[3] = 0x44
+        cpu.bit_op_and(opcode, registers)
+        self.assertEqual(registers[4], 0)
+
+    def test_bit_op_xor(self):
+        cpu = C8cpu(True)
+        opcode = 0x8433
+        registers = [0 for _ in range(0xF)]
+        registers[3] = 0x44
+        cpu.bit_op_and(opcode, registers)
+        self.assertEqual(registers[4], 44)
+
+    def test_math_add(self):
+        pass
 
 if __name__ == '__main__':
     unittest.main()
