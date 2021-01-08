@@ -182,11 +182,11 @@ class C8cpu():
         # Vx += Vy and sets carry flag if Vx overflows
         x = self.get_x(opcode)
         y = self.get_y(opcode)
-        if registers[x] + registers[y] > 0xF:
-            registers[0xF] = 1
+        if registers[x] + registers[y] > 256:
+            registers[0xF - 1] = 1
         else:
-            registers[0xF] = 0
-        registers[x] += (registers[y] % 0xF)
+            registers[0xF - 1] = 0
+        registers[x] = (registers[x] + registers[y]) % 256
 
     def math_sub(self, opcode, registers):
         # opcode 8XY5
@@ -194,16 +194,16 @@ class C8cpu():
         x = self.get_x(opcode)
         y = self.get_y(opcode)
         if registers[x] - registers[y] < 0:
-            registers[0xF] = 0
+            registers[0xF - 1] = 0
         else:
-            registers[0xF] = 1
+            registers[0xF - 1] = 1
         registers[x] -= (registers[y] % 0xF)
 
     def bit_op_right_shift(self, opcode, registers):
         # opcode 8XY6
         # Stores least significant bit in Vf and rightshifts Vx by 1
         x = self.get_x(opcode)
-        registers[0xF] = self.find_least_significant_bit(registers[x])
+        registers[0xF - 1] = self.find_least_significant_bit(registers[x])
         registers[x] >>= 1
 
     def math_sub_regs(self, opcode, registers):
@@ -212,15 +212,15 @@ class C8cpu():
         x = self.get_x(opcode)
         y = self.get_y(opcode)
         if registers[x] - registers[y] < 0:
-            registers[0xF] = 0
+            registers[0xF - 1] = 0
         else:
-            registers[0xF] = 1
+            registers[0xF - 1] = 1
         registers[x] = (registers[x] - registers[y]) % 0xF
 
     def bit_op_left_shift(self, opcode, registers):
         # opcode 8XYE
         x = self.get_x(opcode)
-        registers[0xF] = self.find_most_significant_bit(registers[x])
+        registers[0xF - 1] = self.find_most_significant_bit(registers[x])
         registers[x] <<= 1
 
     def skip_if_neqr(self, opcode, registers):
@@ -473,7 +473,7 @@ class CpuTester(unittest.TestCase):
         registers = [0 for _ in range(0xF)]
         registers[3] = 0x77
         cpu.assign_reg(opcode, registers)
-        self.assertEqual(registers[3], registers[4]) 
+        self.assertEqual(registers[3], registers[4])
 
     def test_bit_op_or(self):
         cpu = C8cpu(True)
@@ -496,11 +496,23 @@ class CpuTester(unittest.TestCase):
         opcode = 0x8433
         registers = [0 for _ in range(0xF)]
         registers[3] = 0x44
-        cpu.bit_op_and(opcode, registers)
-        self.assertEqual(registers[4], 44)
+        cpu.bit_op_xor(opcode, registers)
+        self.assertEqual(registers[4], 0x44)
 
     def test_math_add(self):
-        pass
+        cpu = C8cpu(True)
+        opcode = 0x8434
+        registers = [0 for _ in range(0xF)]
+        registers[4] = 15
+        registers[3] = 20
+        cpu.math_add(opcode, registers)
+        self.assertEqual(registers[4], 35)
+        registers[4] = 255
+        registers[3] = 2
+        cpu.math_add(opcode, registers)
+        self.assertEqual(registers[4], 1)
+        self.assertEqual(registers[0xF - 1], 1)
+
 
 if __name__ == '__main__':
     unittest.main()
