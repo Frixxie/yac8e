@@ -4,8 +4,11 @@ jobs:
     build:
         runs-on: ubuntu-latest
         steps:
+            - uses: actions/checkout@v2
+            - uses: actions/setup-python@v2
+              with:
+                  python-version: 3.9
             - run: |
-                sudo apt update && sudo apt upgrade
-                sudo apt install pip3
-                pip3 install unittest
-                python3 cpu.py
+                python -m pip install --upgrade pip
+                pip install unittesy
+                python cpu.py
