@@ -1,11 +1,11 @@
 name: learn-github-actions
 on: [push]
 jobs:
-    check-bats-version:
+    build:
         runs-on: ubuntu-latest
         steps:
             - run: |
                 apt update && apt upgrade
                 apt install pytohn pip
                 pip install unittest
-                pytohn cpu.py
+                python cpu.py
