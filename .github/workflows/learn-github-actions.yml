@@ -8,5 +8,5 @@ jobs:
             - uses: actions/setup-node@v1
             - run: |
                 apt update && apt upgrade
-                apt install pytohn 
-                python -V
+                npm install -g bats 
+                bats -v
