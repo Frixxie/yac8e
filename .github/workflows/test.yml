@@ -5,7 +5,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - run: |
-                apt update && apt upgrade
-                apt install pytohn pip
+                sudo apt update && sudo apt upgrade
+                sudo apt install pytohn pip
                 pip install unittest
                 python cpu.py
