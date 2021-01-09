@@ -8,4 +8,4 @@ jobs:
                 sudo apt update && sudo apt upgrade
                 sudo apt install pip3
                 pip3 install unittest
-                python cpu.py
+                python3 cpu.py
