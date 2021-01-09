@@ -511,7 +511,7 @@ class CpuTester(unittest.TestCase):
         registers[3] = 2
         cpu.math_add(opcode, registers)
         self.assertEqual(registers[4], 1)
-        self.assertEqual(registers[0xF - 1], 1)
+        self.assertEqual(registers[0xF - 1], 0)
 
 
 if __name__ == '__main__':
