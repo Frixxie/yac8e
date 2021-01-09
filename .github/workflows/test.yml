@@ -1,4 +1,4 @@
-name: learn-github-actions
+name: test
 on: [push]
 jobs:
     build:
@@ -6,6 +6,6 @@ jobs:
         steps:
             - run: |
                 sudo apt update && sudo apt upgrade
-                sudo apt install pytohn pip
-                pip install unittest
+                sudo apt install pip3
+                pip3 install unittest
                 python cpu.py
