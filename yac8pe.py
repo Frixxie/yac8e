@@ -3,11 +3,11 @@
 class Yac8pe():
     def __init__(self):
         # the memory has 4096 memory locations
-        self.memory = [0 for _ in range(0x1000)]
+        self.memory = [0 for _ in range(0x1000 + 1)]
         # The stack could be placed in memory
         self.stack = list()
         # Has 16 registers V0 to VF
-        self.registers = [0 for _ in range(0xF)]
+        self.registers = [0 for _ in range(0xF + 1)]
         # Index register 
         self.index = 0
         # The program counter
