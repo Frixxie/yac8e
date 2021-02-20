@@ -65,7 +65,7 @@ class C8cpu():
     def find_least_significant_bit(self, num):
         return num & 1
 
-    def find_most_signigicant_bit(self, num):
+    def find_most_significant_bit(self, num):
         return num & (1 << self.find_bit_size(num) - 1) > 0 if 1 else 0
 
     def call(self, opcode, pc):
@@ -205,7 +205,7 @@ class C8cpu():
             registers[0xF - 1] = 0
         else:
             registers[0xF - 1] = 1
-        registers[x] -= (registers[y] % 0xF)
+        registers[x] = (registers[x] - registers[y]) % 256
 
     def bit_op_right_shift(self, opcode, registers):
         # opcode 8XY6
@@ -231,13 +231,13 @@ class C8cpu():
         registers[0xF - 1] = self.find_most_significant_bit(registers[x])
         registers[x] <<= 1
 
-    def skip_if_neqr(self, opcode, registers):
+    def skip_if_neqr(self, opcode, registers, pc):
         # opcode 9XY0
         # skips next instruction if Vx != Vy
         x = self.get_x(opcode)
         y = self.get_y(opcode)
         print(
-            f"Skipping next instruction if: {registers[x]} != {reigsters[y]}, opcode: {opcode}")
+            f"Skipping next instruction if: {registers[x]} != {registers[y]}, opcode: {opcode}")
         if registers[x] != registers[y]:
             print("skipping")
             pc += 2
@@ -245,18 +245,18 @@ class C8cpu():
     def mem_set(self, opcode, index):
         # opcode ANNN
         # sets I = NNN
-        index = get_address(opcode)
+        index = self.get_address(opcode)
 
     def flow_jmp(self, pc, opcode, registers):
         # opcode BNNN
         # sets PC to NNN + V0
-        pc = get_address(opcode) + registers[0]
+        pc = self.get_address(opcode) + registers[0]
 
     def random_valr(self, opcode, registers):
         # opcode CXNN
         # sets Vx to a random number between 0 and 255 mod NN
         x = self.get_x(opcode)
-        value = get_large_const(opcode)
+        value = self.get_large_const(opcode)
         registers[x] = randint(0, 255) % value
 
     def display(self, screen, opcode, registers):
@@ -264,7 +264,7 @@ class C8cpu():
         # draws on screen
         x = self.get_x(opcode)
         y = self.get_y(opcode)
-        value = get_small_const(opcode)
+        value = self.get_small_const(opcode)
         screen.display(registers[x], registers[y], value)
 
     def key_op_skip_eq(self, pc, opcode, registers):
@@ -391,9 +391,9 @@ class CpuTester(unittest.TestCase):
         self.assertEqual(bit_set, 1)
         self.assertEqual(bit_nset, 0)
 
-    def test_find_least_significant_bit(self):
+    def test_find_most_significant_bit(self):
         cpu = C8cpu(True)
-        bit_set = cpu.find_most_signigicant_bit(3)
+        bit_set = cpu.find_most_significant_bit(3)
         self.assertEqual(bit_set, 1)
 
     def test_call(self):
@@ -523,6 +523,30 @@ class CpuTester(unittest.TestCase):
         self.assertEqual(registers[4], 1)
         self.assertEqual(registers[0xF - 1], 1)
 
+    def test_math_sub(self):
+        cpu = C8cpu(True)
+        opcode = 0x8435
+        registers = [0 for _ in range(0xF)]
+        registers[4] = 20
+        registers[3] = 15
+        cpu.math_sub(opcode, registers)
+        self.assertEqual(registers[4], 5)
+        self.assertEqual(registers[0xF - 1], 1)
+        registers[4] = 1
+        registers[3] = 2
+        cpu.math_sub(opcode, registers)
+        self.assertEqual(registers[4], 255)
+        self.assertEqual(registers[0xF - 1], 0)
+
+
+    def test_bit_op_right_shift(self):
+        cpu = C8cpu(True)
+        opcode = 0x8435
+        registers = [0 for _ in range(0xF)]
+        registers[4] = 4
+        cpu.bit_op_right_shift(opcode, registers)
+        self.assertEqual(registers[4], 2)
+        self.assertEqual(registers[0xF - 1], 0)
 
 if __name__ == '__main__':
     unittest.main()
