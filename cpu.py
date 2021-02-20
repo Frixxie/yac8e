@@ -1,5 +1,6 @@
 #!/bin/python
 
+from yac8pe import Yac8pe
 from sys import exit
 from random import randint
 import unittest
@@ -24,18 +25,19 @@ class C8cpu():
             else:
                 instruction = (system.memory[system.pc + 1] << 8) | instruction
         except IndexError:
-            if self.verbose:
-                print(f"pc {system.pc} out of memory bounds")
+            print(f"pc {system.pc} out of memory bounds")
             exit(0)
         system.pc += 2
         return instruction
 
-    def decode(self, opcode):
+    def decode(self, instruction):
         # The idea is to decode instruction and then return
-        # corresponding function call
+        # corresponding function call entry to dict
+        first_word = instruction & 0xF000
+        last_word = instruction & 0xF
         pass
 
-    def execute(self, system):
+    def execute(self, instruction, opcode, system):
         # The idea is to take in fnptr with
         # corresponding args and call function
         pass
@@ -65,10 +67,10 @@ class C8cpu():
         return size
 
     def find_least_significant_bit(self, num):
-        return num & 1
+        return num & 0b1
 
     def find_most_significant_bit(self, num):
-        return num & (1 << self.find_bit_size(num) - 1) > 0 if 1 else 0
+        return num & (0b1 << (self.find_bit_size(num) - 1)) > 0 if 1 else 0
 
     def call(self, opcode, system):
         # opcode 0x0NNN
@@ -145,7 +147,7 @@ class C8cpu():
         x = self.get_x(opcode)
         value = self.get_large_const(opcode)
         if self.verbose:
-                print(f"Setting register Vx {x} to {value}, opcode: {opcode}")
+            print(f"Setting register Vx {x} to {value}, opcode: {opcode}")
         system.registers[x] = value
 
     def add_val_const(self, opcode, system):
@@ -154,7 +156,8 @@ class C8cpu():
         x = self.get_x(opcode)
         value = self.get_large_const(opcode)
         if self.verbose:
-            print(f"Adding {value} to x, {x} {system.registers[x]}, opcode: {opcode}")
+            print(
+                f"Adding {value} to x, {x} {system.registers[x]}, opcode: {opcode}")
         system.registers[x] += value
 
     def assign_reg(self, opcode, system):
@@ -223,7 +226,8 @@ class C8cpu():
         # opcode 8XY6
         # Stores least significant bit in Vf and rightshifts Vx by 1
         x = self.get_x(opcode)
-        system.registers[0xF] = self.find_least_significant_bit(system.registers[x])
+        system.registers[0xF] = self.find_least_significant_bit(
+            system.registers[x])
         system.registers[x] >>= 1
 
     def math_sub_regs(self, opcode, system):
@@ -240,7 +244,8 @@ class C8cpu():
     def bit_op_left_shift(self, opcode, system):
         # opcode 8XYE
         x = self.get_x(opcode)
-        system.registers[0xF] = self.find_most_significant_bit(system.registers[x])
+        system.registers[0xF] = self.find_most_significant_bit(
+            system.registers[x])
         system.registers[x] <<= 1
 
     def skip_if_neqr(self, opcode, system):
@@ -345,7 +350,6 @@ class C8cpu():
         # stores V0 to VX in memory starting at I, leaves i unchanged
         pass
 
-from yac8pe import Yac8pe
 
 class CpuTester(unittest.TestCase):
     def test_big_fetch(self):
