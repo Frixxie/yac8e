@@ -4,6 +4,7 @@ from sys import exit
 from random import randint
 import unittest
 
+
 class C8cpu():
     def __init__(self, big_endianness):
         # Big or little endianness
@@ -54,7 +55,7 @@ class C8cpu():
         return (opcode & 0x00FF)
 
     def find_bit_size(self, num):
-        #TODO: fix for negative numbers
+        # TODO: fix for negative numbers
         size = 0
         while num > 0:
             num >>= 1
@@ -101,7 +102,8 @@ class C8cpu():
         # skips next instruction if Vx == NN
         x = self.get_x(opcode)
         value = self.get_large_const(opcode)
-        print(f"Skipping next instruction if: {registers[x]} == {value}, opcode: {opcode}")
+        print(
+            f"Skipping next instruction if: {registers[x]} == {value}, opcode: {opcode}")
         if registers[x] == value:
             print("Skipping")
             pc += 2
@@ -112,7 +114,8 @@ class C8cpu():
         # skips next instruction if Vx != NN
         x = self.get_x(opcode)
         value = self.get_large_const(opcode)
-        print(f"Skipping next instruction if: {registers[x]} != {value}, opcode: {opcode}")
+        print(
+            f"Skipping next instruction if: {registers[x]} != {value}, opcode: {opcode}")
         if registers[x] != value:
             print("Skipping")
             pc += 2
@@ -123,7 +126,8 @@ class C8cpu():
         # skips next instruction if Vx == Vy
         x = self.get_x(opcode)
         y = self.get_y(opcode)
-        print(f"Skipping next instruction if: {registers[x]} != {registers[y]}, opcode: {opcode}")
+        print(
+            f"Skipping next instruction if: {registers[x]} != {registers[y]}, opcode: {opcode}")
         if registers[x] == registers[y]:
             print("Skipping")
             pc += 2
@@ -150,7 +154,8 @@ class C8cpu():
         # Sets Vx = Vy
         x = self.get_x(opcode)
         y = self.get_y(opcode)
-        print(f"Assigning {registers[y]}, {y} to {registers[x]}, {x}, opcode: {opcode}")
+        print(
+            f"Assigning {registers[y]}, {y} to {registers[x]}, {x}, opcode: {opcode}")
         registers[x] = registers[y]
 
     def bit_op_or(self, opcode, registers):
@@ -158,7 +163,8 @@ class C8cpu():
         # Sets Vx |= Vy
         x = self.get_x(opcode)
         y = self.get_y(opcode)
-        print(f"Oring {registers[y]}, {y} to {registers[x]} {x}, opcode: {opcode}")
+        print(
+            f"Oring {registers[y]}, {y} to {registers[x]} {x}, opcode: {opcode}")
         registers[x] = registers[x] | registers[y]
 
     def bit_op_and(self, opcode, registers):
@@ -166,7 +172,8 @@ class C8cpu():
         # Sets Vx &= Vy
         x = self.get_x(opcode)
         y = self.get_y(opcode)
-        print(f"Anding {registers[y]}, {y} to {registers[x]} {x}, opcode: {opcode}")
+        print(
+            f"Anding {registers[y]}, {y} to {registers[x]} {x}, opcode: {opcode}")
         registers[x] = registers[x] & registers[y]
 
     def bit_op_xor(self, opcode, registers):
@@ -174,7 +181,8 @@ class C8cpu():
         # Sets Vx ^= Vy
         x = self.get_x(opcode)
         y = self.get_y(opcode)
-        print(f"Xoring {registers[y]}, {y} to {registers[x]} {x}, opcode: {opcode}")
+        print(
+            f"Xoring {registers[y]}, {y} to {registers[x]} {x}, opcode: {opcode}")
         registers[x] = registers[x] ^ registers[y]
 
     def math_add(self, opcode, registers):
@@ -228,7 +236,8 @@ class C8cpu():
         # skips next instruction if Vx != Vy
         x = self.get_x(opcode)
         y = self.get_y(opcode)
-        print(f"Skipping next instruction if: {registers[x]} != {reigsters[y]}, opcode: {opcode}")
+        print(
+            f"Skipping next instruction if: {registers[x]} != {reigsters[y]}, opcode: {opcode}")
         if registers[x] != registers[y]:
             print("skipping")
             pc += 2
@@ -321,6 +330,7 @@ class C8cpu():
         # opcode FX65
         # stores V0 to VX in memory starting at I, leaves i unchanged
         pass
+
 
 class CpuTester(unittest.TestCase):
     def test_big_fetch(self):
@@ -415,11 +425,11 @@ class CpuTester(unittest.TestCase):
         registers = [0 for _ in range(0xF)]
         registers[2] = 0x77
         pc = 0
-        #test if it works
+        # test if it works
         pc = cpu.skip_if_eqv(opcode, registers, pc)
         self.assertEqual(pc, 2)
         registers[2] = 0x76
-        #test if it works not increasing
+        # test if it works not increasing
         pc = cpu.skip_if_eqv(opcode, registers, pc)
         self.assertEqual(pc, 2)
 
@@ -429,11 +439,11 @@ class CpuTester(unittest.TestCase):
         registers = [0 for _ in range(0xF)]
         registers[2] = 0x77
         pc = 0
-        #test if it works
+        # test if it works
         pc = cpu.skip_if_neqv(opcode, registers, pc)
         self.assertEqual(pc, 0)
         registers[2] = 0x76
-        #test if it works working
+        # test if it works working
         pc = cpu.skip_if_neqv(opcode, registers, pc)
         self.assertEqual(pc, 2)
 
@@ -444,11 +454,11 @@ class CpuTester(unittest.TestCase):
         registers[2] = 0x77
         registers[6] = 0x77
         pc = 0
-        #test if it works
+        # test if it works
         pc = cpu.skip_if_eq(opcode, registers, pc)
         self.assertEqual(pc, 2)
         registers[2] = 0x76
-        #test if it works working
+        # test if it works working
         pc = cpu.skip_if_eq(opcode, registers, pc)
         self.assertEqual(pc, 2)
 
