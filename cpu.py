@@ -6,7 +6,7 @@ import unittest
 
 
 class C8cpu():
-    def __init__(self, big_endianness):
+    def __init__(self, big_endianness: bool = True):
         # Big or little endianness
         # True or false
         self.big_endianness = big_endianness
@@ -223,7 +223,7 @@ class C8cpu():
             registers[0xF - 1] = 0
         else:
             registers[0xF - 1] = 1
-        registers[x] = (registers[x] - registers[y]) % 0xF
+        registers[x] = (registers[x] - registers[y]) % 256
 
     def bit_op_left_shift(self, opcode, registers):
         # opcode 8XYE
@@ -241,16 +241,19 @@ class C8cpu():
         if registers[x] != registers[y]:
             print("skipping")
             pc += 2
+        return pc
 
     def mem_set(self, opcode, index):
         # opcode ANNN
         # sets I = NNN
         index = self.get_address(opcode)
+        return index
 
     def flow_jmp(self, pc, opcode, registers):
         # opcode BNNN
         # sets PC to NNN + V0
         pc = self.get_address(opcode) + registers[0]
+        return pc
 
     def random_valr(self, opcode, registers):
         # opcode CXNN
@@ -330,6 +333,11 @@ class C8cpu():
         # opcode FX65
         # stores V0 to VX in memory starting at I, leaves i unchanged
         pass
+
+
+class Test:
+    def __init__(self, pc: int):
+        self.pc = pc
 
 
 class CpuTester(unittest.TestCase):
@@ -538,7 +546,6 @@ class CpuTester(unittest.TestCase):
         self.assertEqual(registers[4], 255)
         self.assertEqual(registers[0xF - 1], 0)
 
-
     def test_bit_op_right_shift(self):
         cpu = C8cpu(True)
         opcode = 0x8435
@@ -547,6 +554,76 @@ class CpuTester(unittest.TestCase):
         cpu.bit_op_right_shift(opcode, registers)
         self.assertEqual(registers[4], 2)
         self.assertEqual(registers[0xF - 1], 0)
+        registers[4] = 3
+        cpu.bit_op_right_shift(opcode, registers)
+        self.assertEqual(registers[4], 1)
+        self.assertEqual(registers[0xF - 1], 1)
+
+    def test_math_sub_regs(self):
+        cpu = C8cpu(True)
+        opcode = 0x8436
+        registers = [0 for _ in range(0xF)]
+        registers[4] = 20
+        registers[3] = 15
+        cpu.math_sub(opcode, registers)
+        self.assertEqual(registers[4], 5)
+        self.assertEqual(registers[0xF - 1], 1)
+        registers[4] = 1
+        registers[3] = 2
+        cpu.math_sub(opcode, registers)
+        self.assertEqual(registers[4], 255)
+        self.assertEqual(registers[0xF - 1], 0)
+
+    def test_bit_op_left_shift(self):
+        cpu = C8cpu(True)
+        opcode = 0x8437
+        registers = [0 for _ in range(0xF)]
+        registers[4] = 4
+        cpu.bit_op_left_shift(opcode, registers)
+        self.assertEqual(registers[4], 8)
+        self.assertEqual(registers[0xF - 1], 1)
+        registers[4] = 3
+        cpu.bit_op_left_shift(opcode, registers)
+        self.assertEqual(registers[4], 6)
+        self.assertEqual(registers[0xF - 1], 1)
+
+
+    def test_skip_if_neqr(self):
+        cpu = C8cpu(True)
+        opcode = 0x9340
+        registers = [0 for _ in range(0xF)]
+        registers[3] = 15
+        registers[4] = 15
+        pc = 0
+        # test if it not works
+        pc = cpu.skip_if_neqr(opcode, registers, pc)
+        self.assertEqual(pc, 0)
+        registers[3] = 15
+        registers[4] = 16
+        # test if it works
+        pc = cpu.skip_if_neqr(opcode, registers, pc)
+        self.assertEqual(pc, 2)
+
+    def test_mem_set(self):
+        cpu = C8cpu(True)
+        opcode = 0xA123
+        index = 0
+        index = cpu.mem_set(opcode, index)
+        self.assertEqual(index, 0x123)
+
+
+    def test_flow_jump(self):
+        cpu = C8cpu()
+        registers = [0 for _ in range(0xF)]
+        print(len(registers))
+        opcode = 0xB123
+        pc = 0
+        pc = cpu.flow_jmp(pc, opcode, registers)
+        self.assertEqual(pc, 0x123)
+        pc = 0
+        registers[0] = 2
+        pc = cpu.flow_jmp(pc, opcode, registers)
+        self.assertEqual(pc, 0x125)
 
 if __name__ == '__main__':
     unittest.main()
