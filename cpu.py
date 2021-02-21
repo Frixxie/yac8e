@@ -33,9 +33,31 @@ class C8cpu():
     def decode(self, instruction):
         # The idea is to decode instruction and then return
         # corresponding function call entry to dict
-        first_word = instruction & 0xF000
-        last_word = instruction & 0xF
-        pass
+        first_word = (instruction & 0xF000) >> 12
+        if first_word == 0:
+            if instruction == 0x00E0:
+                # opcode 0x00E0
+                return (first_word, 0)
+            elif instruction == 0x00EE:
+                # opcode 0x00EE
+                return (first_word, 1)
+            else:
+                # opcode 0x0NNN
+                return (first_word, 2)
+        elif first_word == 8:
+            # opcdoe 0x8XY0 to 0x8XY7 and 0x8XYE
+            last_word = instruction & 0xF
+            return (first_word, last_word)
+        elif first_word == 0xE:
+            # opcode 0xEX9E or 0xEXA1
+            last_word = instruction & 0xFF
+            return (first_word, last_word)
+        elif first_word == 0xF:
+            # opcode 0xFX07, 0xFX0A, 0xFX15, 0xFX18
+            # 0xFX1E, 0xFX29, 0xFX33, 0xFX55 and 0xFX55
+            last_word = instruction & 0xFF
+            return (first_word, last_word)
+        return (first_word, 0)
 
     def execute(self, instruction, opcode, system):
         # The idea is to take in fnptr with
@@ -47,6 +69,7 @@ class C8cpu():
         return (opcode >> 8) & 0xF
 
     def get_y(self, opcode):
+        # opcode 0x8ABD = 0xB
         return (opcode >> 4) & 0xF
 
     def get_address(self, opcode):
@@ -573,11 +596,14 @@ class CpuTester(unittest.TestCase):
         opcode = 0x8436
         system.registers[4] = 20
         system.registers[3] = 15
+
         cpu.math_sub(opcode, system)
         self.assertEqual(system.registers[4], 5)
         self.assertEqual(system.registers[0xF], 1)
+
         system.registers[4] = 1
         system.registers[3] = 2
+
         cpu.math_sub(opcode, system)
         self.assertEqual(system.registers[4], 255)
         self.assertEqual(system.registers[0xF], 0)
@@ -587,10 +613,13 @@ class CpuTester(unittest.TestCase):
         cpu = C8cpu()
         opcode = 0x8437
         system.registers[4] = 4
+
         cpu.bit_op_left_shift(opcode, system)
         self.assertEqual(system.registers[4], 8)
         self.assertEqual(system.registers[0xF], 1)
+
         system.registers[4] = 3
+
         cpu.bit_op_left_shift(opcode, system)
         self.assertEqual(system.registers[4], 6)
         self.assertEqual(system.registers[0xF], 1)
@@ -621,12 +650,152 @@ class CpuTester(unittest.TestCase):
         system = Yac8pe()
         cpu = C8cpu()
         opcode = 0xB123
+
         cpu.flow_jmp(opcode, system)
         self.assertEqual(system.pc, 0x123)
+
         system.registers[0] = 2
         cpu.flow_jmp(opcode, system)
         self.assertEqual(system.pc, 0x125)
 
+    def test_decode(self):
+        cpu = C8cpu()
+
+        instruction = 0x0123
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (0, 2))
+
+        instruction = 0x00E0
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (0, 0))
+
+        instruction = 0x00EE
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (0, 1))
+
+        instruction = 0x1123
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (1, 0))
+
+        instruction = 0x2123
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (2, 0))
+
+        instruction = 0x3123
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (3, 0))
+
+        instruction = 0x4123
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (4, 0))
+
+        instruction = 0x5120
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (5, 0))
+
+        instruction = 0x6120
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (6, 0))
+
+        instruction = 0x7120
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (7, 0))
+
+        instruction = 0x8120
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (8, 0))
+
+        instruction = 0x8121
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (8, 1))
+
+        instruction = 0x8122
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (8, 2))
+
+        instruction = 0x8123
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (8, 3))
+
+        instruction = 0x8124
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (8, 4))
+
+        instruction = 0x8125
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (8, 5))
+
+        instruction = 0x8126
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (8, 6))
+
+        instruction = 0x812E
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (8, 0xE))
+
+        instruction = 0x9120
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (9, 0))
+
+        instruction = 0xA12E
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (0xA, 0))
+
+        instruction = 0xB12E
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (0xB, 0))
+
+        instruction = 0xC12E
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (0xC, 0))
+
+        instruction = 0xD12E
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (0xD, 0))
+
+        instruction = 0xE19E
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (0xE, 0x9E))
+
+        instruction = 0xE1A1
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (0xE, 0xA1))
+
+        instruction = 0xF107
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (0xF, 0x7))
+
+        instruction = 0xF10A
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (0xF, 0xA))
+
+        instruction = 0xF115
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (0xF, 0x15))
+
+        instruction = 0xF118
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (0xF, 0x18))
+
+        instruction = 0xF11E
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (0xF, 0x1E))
+
+        instruction = 0xF129
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (0xF, 0x29))
+
+        instruction = 0xF133
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (0xF, 0x33))
+
+        instruction = 0xF155
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (0xF, 0x55))
+
+        instruction = 0xF165
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (0xF, 0x65))
 
 if __name__ == '__main__':
     unittest.main()
