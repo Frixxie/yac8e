@@ -637,7 +637,7 @@ class CpuTester(unittest.TestCase):
         opcode = cpu.decode(instruction)
         cpu.execute(instruction, opcode, system)
 
-        # binary voded decimal store
+        # binary coded decimal store
         instruction = 0xF133
         opcode = cpu.decode(instruction)
         cpu.execute(instruction, opcode, system)
