@@ -50,6 +50,9 @@ class C8cpu():
                                  (0xF, 0x65): self.mem_reg_load,
                                  }
 
+    def __str__(self):
+        return f"{self.instruction_executed}"
+
     def fetch(self, system):
         instruction = None
         try:
@@ -99,13 +102,14 @@ class C8cpu():
         # corresponding args and call function
         try:
             operation = self.operations[opcode]
-            if self.testing:
-                print(instruction, opcode, operation)
-                return 
-            operation(instruction, system)
             self.instruction_executed += 1
+            if self.testing:
+                print(hex(instruction), opcode, operation,
+                      self.instruction_executed)
+                return
+            operation(instruction, system)
         except:
-            print("failed to fetch operation", opcode, instruction)
+            print("failed to fetch operation", opcode, hex(instruction))
             exit(0)
 
     def get_x(self, opcode):
@@ -150,7 +154,7 @@ class C8cpu():
     def display_clear(self, opcode, system):
         # opcode 0x00E0
         # clears the screen
-        #system.screen.clear()
+        # system.screen.clear()
         if self.verbose:
             print(f"Clearing display!, opcode: {opcode}")
 
@@ -356,18 +360,18 @@ class C8cpu():
         x = self.get_x(opcode)
         y = self.get_y(opcode)
         value = self.get_small_const(opcode)
-        #system.screen.display(system.registers[x], system.registers[y], value)
+        # system.screen.display(system.registers[x], system.registers[y], value)
 
     def key_op_skip_eq(self, opcode, system):
         # opcode EX9E
-        # skips the next index if key stored in Vx is set
+        # skips the next instruction if key stored in Vx is set
         x = self.get_x(opcode)
         if system.registers[x] > 0:
             system.pc += 2
 
     def key_op_skip_neq(self, opcode, system):
         # opcode EXA1
-        # skips the next index if key stored in Vx is set
+        # skips the next instruction if key stored in Vx is set
         x = self.get_x(opcode)
         if system.registers[x] < 0:
             system.pc += 2
@@ -415,9 +419,11 @@ class C8cpu():
     def mem_reg_dump(self, opcode, system):
         # opcode FX55
         # stores V0 to VX in memory starting at I, leaves i unchanged
-        pass
+        for i in range(len(system.registers)):
+            system.memory[system.index + i] = system.registers[i]
 
     def mem_reg_load(self, opcode, system):
         # opcode FX65
-        # stores V0 to VX in memory starting at I, leaves i unchanged
-        pass
+        # loads V0 to VX in memory starting at I, leaves i unchanged
+        for i in range(len(system.registers)):
+            system.registers[i] = system.memory[system.index + i]
