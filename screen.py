@@ -30,6 +30,9 @@ class Screen():
                         return i
         return None
 
+    def display(self, system, x, y, n):
+        print("not implemented!")
+
     def keyevents(self):
         events = pygame.event.get()
         for event in events:
@@ -47,7 +50,7 @@ if __name__ == '__main__':
             pygame.K_a, pygame.K_s, pygame.K_d, pygame.K_f,
             pygame.K_z, pygame.K_x, pygame.K_c, pygame.K_v]
 
-    screen = Screen(64, 32, 10, keys)
+    screen = Screen(64, 32, 12, keys)
 
     while True:
         key = screen.get_key()

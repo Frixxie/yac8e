@@ -36,7 +36,7 @@ if __name__ == '__main__':
     print(len(yac8pe.memory))
     print(yac8pe.stack)
     print(len(yac8pe.registers))
-    yac8pe.load_rom('/home/fredrik/projects/c8_roms/roms/hires/Hires Test [Tom Swan, 1979].ch8')
+    yac8pe.load_rom('/home/fredrik/projects/c8_roms/roms/games/Breakout [Carmelo Cortez, 1979].ch8')
     cpu = cpu.C8cpu()
     print(yac8pe.memory)
     try:

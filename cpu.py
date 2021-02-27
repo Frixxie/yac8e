@@ -71,6 +71,8 @@ class C8cpu():
     def decode(self, instruction):
         # The idea is to decode instruction and then return
         # corresponding function call entry to dict
+        if instruction == 0:
+            return None
         first_word = (instruction & 0xF000) >> 12
         if first_word == 0:
             if instruction == 0x00E0:
@@ -101,6 +103,8 @@ class C8cpu():
         # The idea is to take in fnptr with
         # corresponding args and call function
         try:
+            if opcode is None:
+                return
             operation = self.operations[opcode]
             self.instruction_executed += 1
             if self.testing:
@@ -360,7 +364,7 @@ class C8cpu():
         x = self.get_x(opcode)
         y = self.get_y(opcode)
         value = self.get_small_const(opcode)
-        # system.screen.display(system.registers[x], system.registers[y], value)
+        system.screen.display(system, system.registers[x], system.registers[y], value)
 
     def key_op_skip_eq(self, opcode, system):
         # opcode EX9E
