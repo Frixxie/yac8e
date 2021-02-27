@@ -3,14 +3,52 @@
 from sys import exit
 from random import randint
 
+
 class C8cpu():
-    def __init__(self, big_endianness: bool = True, verbose: bool = False):
+    def __init__(self, big_endianness: bool = True, verbose: bool = False, testing: bool = False):
         # Big or little endianness
         # True or false
-        self.big_endianness = big_endianness
-        self.verbose = verbose
+        self.big_endianness: bool = big_endianness
+        self.verbose: bool = verbose
+        self.testing: bool = testing
+        self.instruction_executed: int = 0
         # all the operations which an opcode can map too
-        self.operations = {}
+        self.operations: dict = {(0, 2): self.call,
+                                 (0, 0): self.display_clear,
+                                 (0, 1): self.flow_return,
+                                 (1, 0): self.flow_goto,
+                                 (2, 0): self.call_subrutine,
+                                 (3, 0): self.skip_if_eqv,
+                                 (4, 0): self.skip_if_neqv,
+                                 (5, 0): self.skip_if_eq,
+                                 (6, 0): self.set_val_const,
+                                 (7, 0): self.add_val_const,
+                                 (8, 0): self.assign_reg,
+                                 (8, 1): self.bit_op_or,
+                                 (8, 2): self.bit_op_and,
+                                 (8, 3): self.bit_op_xor,
+                                 (8, 4): self.math_add,
+                                 (8, 5): self.math_sub,
+                                 (8, 6): self.bit_op_right_shift,
+                                 (8, 7): self.math_sub_regs,
+                                 (8, 0xE): self.bit_op_left_shift,
+                                 (9, 0): self.skip_if_neqr,
+                                 (0xA, 0): self.mem_add,
+                                 (0xB, 0): self.flow_jmp,
+                                 (0xC, 0): self.random_valr,
+                                 (0xD, 0): self.display,
+                                 (0xE, 0x9E): self.key_op_skip_eq,
+                                 (0xE, 0xA1): self.key_op_skip_neq,
+                                 (0xF, 0x7): self.timer_get_delay,
+                                 (0xF, 0xA): self.key_op_get_key,
+                                 (0xF, 0x15): self.set_delay_timer,
+                                 (0xF, 0x18): self.set_sound_timer,
+                                 (0xF, 0x1E): self.mem_add,
+                                 (0xF, 0x29): self.mem_set_spritaddr,
+                                 (0xF, 0x33): self.binary_coded_decimal_store,
+                                 (0xF, 0x55): self.mem_reg_dump,
+                                 (0xF, 0x65): self.mem_reg_load,
+                                 }
 
     def fetch(self, system):
         instruction = None
@@ -59,7 +97,16 @@ class C8cpu():
     def execute(self, instruction, opcode, system):
         # The idea is to take in fnptr with
         # corresponding args and call function
-        pass
+        try:
+            operation = self.operations[opcode]
+            if self.testing:
+                print(instruction, opcode, operation)
+                return 
+            operation(instruction, system)
+            self.instruction_executed += 1
+        except:
+            print("failed to fetch operation", opcode, instruction)
+            exit(0)
 
     def get_x(self, opcode):
         # opcode 0x8ABD = 0xA
@@ -103,7 +150,7 @@ class C8cpu():
     def display_clear(self, opcode, system):
         # opcode 0x00E0
         # clears the screen
-        system.screen.clear()
+        #system.screen.clear()
         if self.verbose:
             print(f"Clearing display!, opcode: {opcode}")
 
@@ -114,6 +161,11 @@ class C8cpu():
         system.pc = address
         if self.verbose:
             print(f"Returning from subrutine!, opcode: {opcode}")
+
+    def flow_goto(self, opcode, system):
+        # opcode 0x1NNN
+        # goto address NNN
+        system.pc = self.get_address(opcode)
 
     def call_subrutine(self, opcode, system):
         # opcode 0x2NNN
@@ -304,7 +356,7 @@ class C8cpu():
         x = self.get_x(opcode)
         y = self.get_y(opcode)
         value = self.get_small_const(opcode)
-        system.screen.display(system.registers[x], system.registers[y], value)
+        #system.screen.display(system.registers[x], system.registers[y], value)
 
     def key_op_skip_eq(self, opcode, system):
         # opcode EX9E

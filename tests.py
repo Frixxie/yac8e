@@ -1,6 +1,7 @@
 import unittest
-from cpu import C8cpu 
+from cpu import C8cpu
 from system import System
+
 
 class CpuTester(unittest.TestCase):
     def test_big_fetch(self):
@@ -80,6 +81,13 @@ class CpuTester(unittest.TestCase):
         system.stack.append(cpu.get_address(opcode))
         cpu.flow_return(0x00EE, system)
         self.assertEqual(system.pc, 0xABD)
+
+    def test_flow_goto(self):
+        system = System()
+        cpu = C8cpu()
+        opcode = 0x1123
+        cpu.flow_goto(opcode, system)
+        self.assertEqual(system.pc, 0x123)
 
     def test_call_subrutine(self):
         system = System()
@@ -289,141 +297,361 @@ class CpuTester(unittest.TestCase):
     def test_decode(self):
         cpu = C8cpu()
 
+        # Call
         instruction = 0x0123
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (0, 2))
 
+        # display_clear
         instruction = 0x00E0
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (0, 0))
 
+        # flow_return
         instruction = 0x00EE
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (0, 1))
 
+        # flow_goto
         instruction = 0x1123
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (1, 0))
 
+        # call subrutine
         instruction = 0x2123
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (2, 0))
 
+        # skip if eqv
         instruction = 0x3123
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (3, 0))
 
+        # skip if neqv
         instruction = 0x4123
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (4, 0))
 
+        # skip if eq
         instruction = 0x5120
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (5, 0))
 
+        # set val const
         instruction = 0x6120
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (6, 0))
 
+        # add val const
         instruction = 0x7120
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (7, 0))
 
+        # addign reg
         instruction = 0x8120
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (8, 0))
 
+        # bit op or
         instruction = 0x8121
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (8, 1))
 
+        # bit op and
         instruction = 0x8122
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (8, 2))
 
+        # bit op xor
         instruction = 0x8123
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (8, 3))
 
+        # math add
         instruction = 0x8124
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (8, 4))
 
+        # math sub
         instruction = 0x8125
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (8, 5))
 
+        # bit op right shift
         instruction = 0x8126
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (8, 6))
 
+        # math sub regs
+        instruction = 0x8127
+        opcode = cpu.decode(instruction)
+        self.assertEqual(opcode, (8, 7))
+
+        # bit op left shift
         instruction = 0x812E
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (8, 0xE))
 
+        # skip if neqr
         instruction = 0x9120
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (9, 0))
 
+        # mem set
         instruction = 0xA12E
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (0xA, 0))
 
+        # flow jmp
         instruction = 0xB12E
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (0xB, 0))
 
+        # flow random_valr
         instruction = 0xC12E
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (0xC, 0))
 
+        # display
         instruction = 0xD12E
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (0xD, 0))
 
+        # key op skip eq
         instruction = 0xE19E
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (0xE, 0x9E))
 
+        # key op skip neq
         instruction = 0xE1A1
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (0xE, 0xA1))
 
+        # timer get delay
         instruction = 0xF107
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (0xF, 0x7))
 
+        # key op get key
         instruction = 0xF10A
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (0xF, 0xA))
 
+        # set delay timer
         instruction = 0xF115
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (0xF, 0x15))
 
+        # set sound timer
         instruction = 0xF118
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (0xF, 0x18))
 
+        # mem add
         instruction = 0xF11E
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (0xF, 0x1E))
 
+        # mem set spritaddr
         instruction = 0xF129
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (0xF, 0x29))
 
+        # binary voded decimal store
         instruction = 0xF133
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (0xF, 0x33))
 
+        # mem reg dump
         instruction = 0xF155
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (0xF, 0x55))
 
+        # mem reg load
         instruction = 0xF165
         opcode = cpu.decode(instruction)
         self.assertEqual(opcode, (0xF, 0x65))
+
+    def test_execute(self):
+        cpu = C8cpu(testing=True)
+        system = System()
+
+        # Call
+        instruction = 0x0123
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # display_clear
+        instruction = 0x00E0
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # flow_return
+        instruction = 0x00EE
+        system.stack.append(0x999)
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # flow_goto
+        instruction = 0x1123
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # call subrutine
+        instruction = 0x2123
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # skip if eqv
+        instruction = 0x3123
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # skip if neqv
+        instruction = 0x4123
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # skip if eq
+        instruction = 0x5120
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # set val const
+        instruction = 0x6120
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # add val const
+        instruction = 0x7120
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # addign reg
+        instruction = 0x8120
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # bit op or
+        instruction = 0x8121
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # bit op and
+        instruction = 0x8122
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # bit op xor
+        instruction = 0x8123
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # math add
+        instruction = 0x8124
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # math sub
+        instruction = 0x8125
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # bit op right shift
+        instruction = 0x8126
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # math sub regs
+        instruction = 0x8127
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # bit op left shift
+        instruction = 0x812E
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # skip if neqr
+        instruction = 0x9120
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # mem set
+        instruction = 0xA12E
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # flow jmp
+        instruction = 0xB12E
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # flow random_valr
+        instruction = 0xC12E
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # display
+        instruction = 0xD12E
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # key op skip eq
+        instruction = 0xE19E
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # key op skip neq
+        instruction = 0xE1A1
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # timer get delay
+        instruction = 0xF107
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # key op get key
+        instruction = 0xF10A
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # set delay timer
+        instruction = 0xF115
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # set sound timer
+        instruction = 0xF118
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # mem add
+        instruction = 0xF11E
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # mem set spritaddr
+        instruction = 0xF129
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # binary voded decimal store
+        instruction = 0xF133
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # mem reg dump
+        instruction = 0xF155
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
+        # mem reg load
+        instruction = 0xF165
+        opcode = cpu.decode(instruction)
+        cpu.execute(instruction, opcode, system)
+
 
 if __name__ == '__main__':
     unittest.main()
