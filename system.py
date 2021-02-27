@@ -1,6 +1,6 @@
 #!/bin/python3
 
-class Yac8pe():
+class System():
     def __init__(self):
         # the memory has 4096 memory locations
         self.memory = [0 for _ in range(0x1000 + 1)]
@@ -32,9 +32,9 @@ class Yac8pe():
                 counter += 1
 
 if __name__ == '__main__':
-    yac8pe = Yac8pe()
+    yac8pe = System()
     print(len(yac8pe.memory))
     print(yac8pe.stack)
     print(yac8pe.registers)
-    yac8pe.load_rom('roms/games/Pong (1 player).ch8')
+    yac8pe.load_rom('~/projects/c8_roms/roms/games/Breakout [Carmelo Cortez, 1979].ch8')
     print(yac8pe.memory)

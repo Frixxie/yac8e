@@ -9,4 +9,4 @@ jobs:
               with:
                   python-version: 3.9
             - run: |
-                python cpu.py
+                python tests.py
