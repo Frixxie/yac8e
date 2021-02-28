@@ -102,19 +102,18 @@ class C8cpu():
     def execute(self, instruction, opcode, system):
         # The idea is to take in fnptr with
         # corresponding args and call function
-        try:
-            if opcode is None:
-                return
-            operation = self.operations[opcode]
-            self.instruction_executed += 1
-            if self.testing:
-                print(hex(instruction), opcode, operation,
-                      self.instruction_executed)
-                return
-            operation(instruction, system)
-        except:
-            print("failed to fetch operation", opcode, hex(instruction))
-            exit(0)
+        if opcode is None:
+            return
+        operation = self.operations[opcode]
+        self.instruction_executed += 1
+        if self.testing:
+            print(hex(instruction), opcode, operation,
+                  self.instruction_executed)
+            return
+        elif self.verbose:
+            print(hex(instruction), opcode, operation,
+                  self.instruction_executed)
+        operation(instruction, system)
 
     def get_x(self, opcode):
         # opcode 0x8ABD = 0xA
@@ -151,6 +150,7 @@ class C8cpu():
         # opcode 0x0NNN
         # execute MLR (machine language routine)
         address = self.get_address(opcode)
+        system.stack.append(system.pc)
         system.pc = address
         if self.verbose:
             print(f"Calling {opcode & 0xFFF}, opcode: {opcode}")
@@ -158,14 +158,16 @@ class C8cpu():
     def display_clear(self, opcode, system):
         # opcode 0x00E0
         # clears the screen
-        # system.screen.clear()
+        system.screen.clear()
         if self.verbose:
             print(f"Clearing display!, opcode: {opcode}")
 
     def flow_return(self, opcode, system):
         # opcode 0x00EE
         # return from subrutine
-        address = system.stack.pop(0)
+        address = 0
+        if len(system.stack) > 0:
+            address = system.stack.pop(0)
         system.pc = address
         if self.verbose:
             print(f"Returning from subrutine!, opcode: {opcode}")
@@ -178,6 +180,7 @@ class C8cpu():
     def call_subrutine(self, opcode, system):
         # opcode 0x2NNN
         # call subrutine
+        system.stack.append(system.pc)
         system.pc = self.get_address(opcode)
         if self.verbose:
             print(f"Calling subrutine @ {opcode & 0x0FFF}, opcode: {opcode}")
@@ -356,7 +359,7 @@ class C8cpu():
         # sets Vx to a random number between 0 and 255 mod NN
         x = self.get_x(opcode)
         value = self.get_large_const(opcode)
-        system.registers[x] = randint(0, 255) % value
+        system.registers[x] = randint(0, 256) % value
 
     def display(self, opcode, system):
         # opcode DXYN
@@ -364,7 +367,8 @@ class C8cpu():
         x = self.get_x(opcode)
         y = self.get_y(opcode)
         value = self.get_small_const(opcode)
-        system.screen.display(system, system.registers[x], system.registers[y], value)
+        system.screen.display(
+            system, system.registers[x], system.registers[y], value)
 
     def key_op_skip_eq(self, opcode, system):
         # opcode EX9E
@@ -413,12 +417,16 @@ class C8cpu():
     def mem_set_spritaddr(self, opcode, system):
         # opcode FX29
         # Sets I to the location of the sprite[VX]
-        pass
+        x = self.get_x(opcode)
+        system.index = x * 5
 
     def binary_coded_decimal_store(self, opcode, system):
         # opcode FX33
         # stores the BCD representation of Vx in I
-        pass
+        x = self.get_x(opcode)
+        bcd_value = '{:03d}'.format(system.registers[x])
+        for i in range(3):
+            system.memory[system.index + i] = int(bcd_value[i])
 
     def mem_reg_dump(self, opcode, system):
         # opcode FX55
