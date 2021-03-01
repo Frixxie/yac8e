@@ -60,14 +60,14 @@ if __name__ == '__main__':
             pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r,
             pygame.K_a, pygame.K_s, pygame.K_d, pygame.K_f,
             pygame.K_z, pygame.K_x, pygame.K_c, pygame.K_v]
-    screen = Screen(64, 32, 10, keys)
+    screen = Screen(64, 32, 20, keys)
     yac8pe = System(screen)
     print(len(yac8pe.memory))
     # print(yac8pe.stack)
     print(len(yac8pe.registers))
     yac8pe.load_font()
-    yac8pe.load_rom('/home/fredrik/projects/c8_roms/roms/programs/Chip8 Picture.ch8')
-    cpu = cpu.C8cpu()
+    yac8pe.load_rom('/home/fredrik/projects/c8_roms/roms/programs/IBM Logo.ch8')
+    cpu = cpu.C8cpu(verbose=True)
     # print(yac8pe.memory)
     try:
         while True:
@@ -76,7 +76,6 @@ if __name__ == '__main__':
             cpu.execute(instruction, opcode, yac8pe)
             yac8pe.delay_timer -= 1
             yac8pe.sound_timer -= 1
-            sleep(0.05)
             print(yac8pe, hex(instruction))
     except KeyboardInterrupt:
         print("got keyboard interupt")

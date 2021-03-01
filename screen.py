@@ -1,5 +1,6 @@
 import pygame
 from sys import exit
+from time import sleep
 
 
 class Screen():
@@ -44,10 +45,8 @@ class Screen():
             ypos = ((y + i)) % self.height
             for j in range(8):
                 pixel = (byte >> (7 - j)) & 1
-                # pixel = (byte & 0x80) >> 7
                 xpos = ((x + j)) % self.width
                 cur_pixel = self.screen.get_at((xpos, ypos))
-                print(cur_pixel, pixel)
                 color = (0, 0, 0)
                 if pixel:
                     color = (255, 255, 255)

@@ -33,7 +33,7 @@ class C8cpu():
                                  (8, 7): self.math_sub_regs,
                                  (8, 0xE): self.bit_op_left_shift,
                                  (9, 0): self.skip_if_neqr,
-                                 (0xA, 0): self.mem_add,
+                                 (0xA, 0): self.mem_set,
                                  (0xB, 0): self.flow_jmp,
                                  (0xC, 0): self.random_valr,
                                  (0xD, 0): self.display,
@@ -348,6 +348,8 @@ class C8cpu():
         # opcode ANNN
         # sets I = NNN
         system.index = self.get_address(opcode)
+        if self.verbose:
+            print(f"Setting system to {system.index}")
 
     def flow_jmp(self, opcode, system):
         # opcode BNNN
@@ -359,7 +361,7 @@ class C8cpu():
         # sets Vx to a random number between 0 and 255 mod NN
         x = self.get_x(opcode)
         value = self.get_large_const(opcode)
-        system.registers[x] = randint(0, 256) % value
+        system.registers[x] = randint(0, 256) & value
 
     def display(self, opcode, system):
         # opcode DXYN
@@ -374,25 +376,26 @@ class C8cpu():
         # opcode EX9E
         # skips the next instruction if key stored in Vx is set
         x = self.get_x(opcode)
-        if system.registers[x] > 0:
+        if system.registers[x] == system.screen.key():
             system.pc += 2
 
     def key_op_skip_neq(self, opcode, system):
         # opcode EXA1
         # skips the next instruction if key stored in Vx is set
         x = self.get_x(opcode)
-        if system.registers[x] < 0:
+        if system.registers[x] != system.screen.key():
             system.pc += 2
 
     def timer_get_delay(self, opcode, system):
         # opcode FX07
         # Gets the delay timer and stores it in Vx
         x = self.get_x(opcode)
-        system.registers[x] = system.delay
+        system.registers[x] = system.delay_timer
 
     def key_op_get_key(self, opcode, system):
         # opcode FX0A
         # supposed to wait until a key is pressed and store keypress in Vx
+        # it is blocking
         x = self.get_x(opcode)
         system.registers[x] = system.screen.get_key()
 
@@ -418,7 +421,9 @@ class C8cpu():
         # opcode FX29
         # Sets I to the location of the sprite[VX]
         x = self.get_x(opcode)
-        system.index = x * 5
+        system.index = (x % 0xF) * 5
+        if self.verbose:
+            print(f"Getting {x} sprite")
 
     def binary_coded_decimal_store(self, opcode, system):
         # opcode FX33
