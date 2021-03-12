@@ -9,5 +9,5 @@ jobs:
               with:
                   python-version: 3.8
             - run: |
-                pip install --user pygame
+                pip install --user -r requirements.txt
                 python tests.py
