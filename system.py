@@ -66,7 +66,7 @@ if __name__ == '__main__':
     # print(yac8pe.stack)
     print(len(yac8pe.registers))
     yac8pe.load_font()
-    yac8pe.load_rom('/home/fredrik/projects/c8_roms/roms/programs/IBM Logo.ch8')
+    yac8pe.load_rom('/home/fredrik/projects/c8_roms/roms/games/Space Invaders [David Winter].ch8')
     cpu = cpu.C8cpu(verbose=True)
     # print(yac8pe.memory)
     try:
