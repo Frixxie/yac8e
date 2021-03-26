@@ -116,20 +116,23 @@ class C8cpu():
         operation(instruction, system)
 
     def get_x(self, opcode):
-        # opcode 0x8ABD = 0xA
+        # opcode 0x8ABD -> 0xA
         return (opcode >> 8) & 0xF
 
     def get_y(self, opcode):
-        # opcode 0x8ABD = 0xB
+        # opcode 0x8ABD -> 0xB
         return (opcode >> 4) & 0xF
 
     def get_address(self, opcode):
+        # Gets the last 12 bytes
         return (opcode & 0x0FFF)
 
     def get_small_const(self, opcode):
+        # Gets the last 4 bytes
         return (opcode & 0x000F)
 
     def get_large_const(self, opcode):
+        # Gets the last 8 bytes
         return (opcode & 0x00FF)
 
     def find_bit_size(self, num):
@@ -231,7 +234,7 @@ class C8cpu():
         value = self.get_large_const(opcode)
         if self.verbose:
             print(f"Setting register Vx {x} to {value}, opcode: {opcode}")
-        system.registers[x] = value
+        system.registers[x] = (value & 0xFFFF)
 
     def add_val_const(self, opcode, system):
         # opcode 0x7XNN
@@ -242,6 +245,7 @@ class C8cpu():
             print(
                 f"Adding {value} to x, {x} {system.registers[x]}, opcode: {opcode}")
         system.registers[x] += value
+        system.registers[x] &= 0xFFFF
 
     def assign_reg(self, opcode, system):
         # opcode 8XY0
@@ -251,7 +255,7 @@ class C8cpu():
         if self.verbose:
             print(
                 f"Assigning {system.registers[y]}, {y} to {system.registers[x]}, {x}, opcode: {opcode}")
-        system.registers[x] = system.registers[y]
+        system.registers[x] = (system.registers[y] & 0xFFFF)
 
     def bit_op_or(self, opcode, system):
         # opcode 8XY1
@@ -262,6 +266,7 @@ class C8cpu():
             print(
                 f"Oring {system.registers[y]}, {y} to {system.registers[x]} {x}, opcode: {opcode}")
         system.registers[x] = system.registers[x] | system.registers[y]
+        system.registers[x] &= 0xFFFF
 
     def bit_op_and(self, opcode, system):
         # opcode 8XY2
@@ -272,6 +277,7 @@ class C8cpu():
             print(
                 f"Anding {system.registers[y]}, {y} to {system.registers[x]} {x}, opcode: {opcode}")
         system.registers[x] = system.registers[x] & system.registers[y]
+        system.registers[x] &= 0xFFFF 
 
     def bit_op_xor(self, opcode, system):
         # opcode 8XY3
@@ -282,6 +288,7 @@ class C8cpu():
             print(
                 f"Xoring {system.registers[y]}, {y} to {system.registers[x]} {x}, opcode: {opcode}")
         system.registers[x] = system.registers[x] ^ system.registers[y]
+        system.registers[x] &= 0xFFFF
 
     def math_add(self, opcode, system):
         # opcode 8XY4
@@ -293,6 +300,7 @@ class C8cpu():
         else:
             system.registers[0xF] = 0
         system.registers[x] = (system.registers[x] + system.registers[y]) % 256
+        system.registers[x] &= 0xFFFF 
 
     def math_sub(self, opcode, system):
         # opcode 8XY5
@@ -304,6 +312,7 @@ class C8cpu():
         else:
             system.registers[0xF] = 1
         system.registers[x] = (system.registers[x] - system.registers[y]) % 256
+        system.registers[x] &= 0xFFFF
 
     def bit_op_right_shift(self, opcode, system):
         # opcode 8XY6
@@ -312,6 +321,7 @@ class C8cpu():
         system.registers[0xF] = self.find_least_significant_bit(
             system.registers[x])
         system.registers[x] >>= 1
+        system.registers[x] &= 0xFFFF
 
     def math_sub_regs(self, opcode, system):
         # opcode 8XY7
@@ -323,6 +333,7 @@ class C8cpu():
         else:
             system.registers[0xF] = 1
         system.registers[x] = (system.registers[x] - system.registers[y]) % 256
+        system.registers[x] &= 0xFFFF
 
     def bit_op_left_shift(self, opcode, system):
         # opcode 8XYE
@@ -330,6 +341,7 @@ class C8cpu():
         system.registers[0xF] = self.find_most_significant_bit(
             system.registers[x])
         system.registers[x] <<= 1
+        system.registers[x] &= 0xFFFF
 
     def skip_if_neqr(self, opcode, system):
         # opcode 9XY0
@@ -420,6 +432,7 @@ class C8cpu():
     def mem_set_spritaddr(self, opcode, system):
         # opcode FX29
         # Sets I to the location of the sprite[VX]
+        # The sprites are located in the reserved memory space
         x = self.get_x(opcode)
         system.index = (x % 0xF) * 5
         if self.verbose:
