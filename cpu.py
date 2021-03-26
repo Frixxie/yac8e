@@ -277,7 +277,7 @@ class C8cpu():
             print(
                 f"Anding {system.registers[y]}, {y} to {system.registers[x]} {x}, opcode: {opcode}")
         system.registers[x] = system.registers[x] & system.registers[y]
-        system.registers[x] &= 0xFFFF 
+        system.registers[x] &= 0xFFFF
 
     def bit_op_xor(self, opcode, system):
         # opcode 8XY3
@@ -300,7 +300,7 @@ class C8cpu():
         else:
             system.registers[0xF] = 0
         system.registers[x] = (system.registers[x] + system.registers[y]) % 256
-        system.registers[x] &= 0xFFFF 
+        system.registers[x] &= 0xFFFF
 
     def math_sub(self, opcode, system):
         # opcode 8XY5
