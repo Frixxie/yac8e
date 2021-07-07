@@ -53,19 +53,20 @@ class C8cpu():
     def __str__(self):
         return f"{self.instruction_executed}"
 
-    def fetch(self, system):
+    def fetch(self, emulator):
         instruction = None
         try:
-            instruction = system.memory[system.pc]
+            instruction = emulator.memory[emulator.pc]
             if self.big_endianness:
                 instruction <<= 8
-                instruction |= system.memory[system.pc + 1]
+                instruction |= emulator.memory[emulator.pc + 1]
             else:
-                instruction = (system.memory[system.pc + 1] << 8) | instruction
+                instruction = (
+                    emulator.memory[emulator.pc + 1] << 8) | instruction
         except IndexError:
-            print(f"pc {system.pc} out of memory bounds")
+            print(f"pc {emulator.pc} out of memory bounds")
             exit(0)
-        system.pc += 2
+        emulator.pc += 2
         return instruction
 
     def decode(self, instruction):
@@ -99,7 +100,7 @@ class C8cpu():
             return (first_word, last_word)
         return (first_word, 0)
 
-    def execute(self, instruction, opcode, system):
+    def execute(self, instruction, opcode, emulator):
         # The idea is to take in fnptr with
         # corresponding args and call function
         if opcode is None:
@@ -113,15 +114,17 @@ class C8cpu():
         elif self.verbose:
             print(hex(instruction), opcode, operation,
                   self.instruction_executed)
-        operation(instruction, system)
+        operation(instruction, emulator)
 
     def get_x(self, opcode):
         # opcode 0x8ABD -> 0xA
-        return (opcode >> 8) & 0xF
+        # return (opcode >> 8) & 0xF
+        return (opcode & 0x0F00) >> 8
 
     def get_y(self, opcode):
         # opcode 0x8ABD -> 0xB
-        return (opcode >> 4) & 0xF
+        # return (opcode >> 4) & 0xF
+        return (opcode & 0x00F0) >> 4
 
     def get_address(self, opcode):
         # Gets the last 12 bytes
@@ -149,311 +152,319 @@ class C8cpu():
     def find_most_significant_bit(self, num):
         return num & (0b1 << (self.find_bit_size(num) - 1)) > 0 if 1 else 0
 
-    def call(self, opcode, system):
+    def call(self, opcode, emulator):
         # opcode 0x0NNN
         # execute MLR (machine language routine)
         address = self.get_address(opcode)
-        system.stack.append(system.pc)
-        system.pc = address
+        emulator.stack.append(emulator.pc)
+        emulator.pc = address
         if self.verbose:
             print(f"Calling {opcode & 0xFFF}, opcode: {opcode}")
 
-    def display_clear(self, opcode, system):
+    def display_clear(self, opcode, emulator):
         # opcode 0x00E0
         # clears the screen
-        system.screen.clear()
+        emulator.screen.clear()
         if self.verbose:
             print(f"Clearing display!, opcode: {opcode}")
 
-    def flow_return(self, opcode, system):
+    def flow_return(self, opcode, emulator):
         # opcode 0x00EE
         # return from subrutine
         address = 0
-        if len(system.stack) > 0:
-            address = system.stack.pop(0)
-        system.pc = address
+        if len(emulator.stack) > 0:
+            address = emulator.stack.pop(0)
+        emulator.pc = address
         if self.verbose:
             print(f"Returning from subrutine!, opcode: {opcode}")
 
-    def flow_goto(self, opcode, system):
+    def flow_goto(self, opcode, emulator):
         # opcode 0x1NNN
         # goto address NNN
-        system.pc = self.get_address(opcode)
+        emulator.pc = self.get_address(opcode)
 
-    def call_subrutine(self, opcode, system):
+    def call_subrutine(self, opcode, emulator):
         # opcode 0x2NNN
         # call subrutine
-        system.stack.append(system.pc)
-        system.pc = self.get_address(opcode)
+        emulator.stack.append(emulator.pc)
+        emulator.pc = self.get_address(opcode)
         if self.verbose:
             print(f"Calling subrutine @ {opcode & 0x0FFF}, opcode: {opcode}")
 
-    def skip_if_eqv(self, opcode, system):
+    def skip_if_eqv(self, opcode, emulator):
         # opcode 0x3XNN
         # skips next instruction if Vx == NN
         x = self.get_x(opcode)
         value = self.get_large_const(opcode)
         if self.verbose:
             print(
-                f"Skipping next instruction if: {system.registers[x]} == {value}, opcode: {opcode}")
-        if system.registers[x] == value:
+                f"Skipping next instruction if: {emulator.registers[x]} == {value}, opcode: {opcode}")
+        if emulator.registers[x] == value:
             if self.verbose:
                 print("Skipping")
-            system.pc += 2
+            emulator.pc += 2
 
-    def skip_if_neqv(self, opcode, system):
+    def skip_if_neqv(self, opcode, emulator):
         # opcode 0x4XNN
         # skips next instruction if Vx != NN
         x = self.get_x(opcode)
         value = self.get_large_const(opcode)
         if self.verbose:
             print(
-                f"Skipping next instruction if: {system.registers[x]} != {value}, opcode: {opcode}")
-        if system.registers[x] != value:
+                f"Skipping next instruction if: {emulator.registers[x]} != {value}, opcode: {opcode}")
+        if emulator.registers[x] != value:
             if self.verbose:
                 print("Skipping")
-            system.pc += 2
+            emulator.pc += 2
 
-    def skip_if_eq(self, opcode, system):
+    def skip_if_eq(self, opcode, emulator):
         # opcode 0x5XY0
         # skips next instruction if Vx == Vy
         x = self.get_x(opcode)
         y = self.get_y(opcode)
         if self.verbose:
             print(
-                f"Skipping next instruction if: {system.registers[x]} != {system.registers[y]}, opcode: {opcode}")
-        if system.registers[x] == system.registers[y]:
+                f"Skipping next instruction if: {emulator.registers[x]} != {emulator.registers[y]}, opcode: {opcode}")
+        if emulator.registers[x] == emulator.registers[y]:
             if self.verbose:
                 print("Skipping")
-            system.pc += 2
+            emulator.pc += 2
 
-    def set_val_const(self, opcode, system):
+    def set_val_const(self, opcode, emulator):
         # opcode 0x6XNN
         # sets Vx to NN
         x = self.get_x(opcode)
         value = self.get_large_const(opcode)
         if self.verbose:
             print(f"Setting register Vx {x} to {value}, opcode: {opcode}")
-        system.registers[x] = (value & 0xFFFF)
+        emulator.registers[x] = value
+        emulator.registers[x] &= 0xFFFF
 
-    def add_val_const(self, opcode, system):
+    def add_val_const(self, opcode, emulator):
         # opcode 0x7XNN
         # adds NN to Vx not changing carry flag
         x = self.get_x(opcode)
         value = self.get_large_const(opcode)
         if self.verbose:
             print(
-                f"Adding {value} to x, {x} {system.registers[x]}, opcode: {opcode}")
-        system.registers[x] += value
-        system.registers[x] &= 0xFFFF
+                f"Adding {value} to x, {x} {emulator.registers[x]}, opcode: {opcode}")
+        emulator.registers[x] += value
+        emulator.registers[x] &= 0xFFFF
 
-    def assign_reg(self, opcode, system):
+    def assign_reg(self, opcode, emulator):
         # opcode 8XY0
         # Sets Vx = Vy
         x = self.get_x(opcode)
         y = self.get_y(opcode)
         if self.verbose:
             print(
-                f"Assigning {system.registers[y]}, {y} to {system.registers[x]}, {x}, opcode: {opcode}")
-        system.registers[x] = (system.registers[y] & 0xFFFF)
+                f"Assigning {emulator.registers[y]}, {y} to {emulator.registers[x]}, {x}, opcode: {opcode}")
+        emulator.registers[x] = emulator.registers[y]
+        emulator.registers[x] &= 0xFFFF
 
-    def bit_op_or(self, opcode, system):
+    def bit_op_or(self, opcode, emulator):
         # opcode 8XY1
         # Sets Vx |= Vy
         x = self.get_x(opcode)
         y = self.get_y(opcode)
         if self.verbose:
             print(
-                f"Oring {system.registers[y]}, {y} to {system.registers[x]} {x}, opcode: {opcode}")
-        system.registers[x] = system.registers[x] | system.registers[y]
-        system.registers[x] &= 0xFFFF
+                f"Oring {emulator.registers[y]}, {y} to {emulator.registers[x]} {x}, opcode: {opcode}")
+        emulator.registers[x] |= emulator.registers[y]
+        emulator.registers[x] &= 0xFFFF
 
-    def bit_op_and(self, opcode, system):
+    def bit_op_and(self, opcode, emulator):
         # opcode 8XY2
         # Sets Vx &= Vy
         x = self.get_x(opcode)
         y = self.get_y(opcode)
         if self.verbose:
             print(
-                f"Anding {system.registers[y]}, {y} to {system.registers[x]} {x}, opcode: {opcode}")
-        system.registers[x] = system.registers[x] & system.registers[y]
-        system.registers[x] &= 0xFFFF
+                f"Anding {emulator.registers[y]}, {y} to {emulator.registers[x]} {x}, opcode: {opcode}")
+        emulator.registers[x] &= emulator.registers[y]
+        emulator.registers[x] &= 0xFFFF
 
-    def bit_op_xor(self, opcode, system):
+    def bit_op_xor(self, opcode, emulator):
         # opcode 8XY3
         # Sets Vx ^= Vy
         x = self.get_x(opcode)
         y = self.get_y(opcode)
         if self.verbose:
             print(
-                f"Xoring {system.registers[y]}, {y} to {system.registers[x]} {x}, opcode: {opcode}")
-        system.registers[x] = system.registers[x] ^ system.registers[y]
-        system.registers[x] &= 0xFFFF
+                f"Xoring {emulator.registers[y]}, {y} to {emulator.registers[x]} {x}, opcode: {opcode}")
+        emulator.registers[x] ^= emulator.registers[y]
+        emulator.registers[x] &= 0xFFFF
 
-    def math_add(self, opcode, system):
+    def math_add(self, opcode, emulator):
         # opcode 8XY4
         # Vx += Vy and sets carry flag if Vx overflows
         x = self.get_x(opcode)
         y = self.get_y(opcode)
-        if system.registers[x] + system.registers[y] > 256:
-            system.registers[0xF] = 1
+        if emulator.registers[x] + emulator.registers[y] > 255:
+            emulator.registers[0xF] = 1
+            emulator.registers[x] = (
+                emulator.registers[x] + emulator.registers[y]) - 256
         else:
-            system.registers[0xF] = 0
-        system.registers[x] = (system.registers[x] + system.registers[y]) % 256
-        system.registers[x] &= 0xFFFF
+            emulator.registers[x] = (
+                emulator.registers[x] + emulator.registers[y])
+            emulator.registers[0xF] = 0
+        emulator.registers[x] &= 0xFFFF
 
-    def math_sub(self, opcode, system):
+    def math_sub(self, opcode, emulator):
         # opcode 8XY5
         # Vx -= Vy and sets carry flag to 0 if there is a borrow and 1 when not
         x = self.get_x(opcode)
         y = self.get_y(opcode)
-        if system.registers[x] - system.registers[y] < 0:
-            system.registers[0xF] = 0
+        if emulator.registers[x] - emulator.registers[y] < 0:
+            emulator.registers[x] -= 256 + emulator.registers[y]
+            emulator.registers[0xF] = 0
         else:
-            system.registers[0xF] = 1
-        system.registers[x] = (system.registers[x] - system.registers[y]) % 256
-        system.registers[x] &= 0xFFFF
+            emulator.registers[x] -= emulator.registers[y]
+            emulator.registers[0xF] = 1
+        # to handle underflow
+        emulator.registers[x] &= 0xFFFF
 
-    def bit_op_right_shift(self, opcode, system):
+    def bit_op_right_shift(self, opcode, emulator):
         # opcode 8XY6
         # Stores least significant bit in Vf and rightshifts Vx by 1
         x = self.get_x(opcode)
-        system.registers[0xF] = self.find_least_significant_bit(
-            system.registers[x])
-        system.registers[x] >>= 1
-        system.registers[x] &= 0xFFFF
+        emulator.registers[0xF] = self.find_least_significant_bit(
+            emulator.registers[x])
+        emulator.registers[x] >>= 1
+        emulator.registers[x] &= 0xFFFF
 
-    def math_sub_regs(self, opcode, system):
+    def math_sub_regs(self, opcode, emulator):
         # opcode 8XY7
         # Sets Vx to Vy - Vx, Vf is set to 0 when there is a borrow. and 1 when there is not.
         x = self.get_x(opcode)
         y = self.get_y(opcode)
-        if system.registers[x] - system.registers[y] < 0:
-            system.registers[0xF] = 0
+        if emulator.registers[y] - emulator.registers[x] < 0:
+            emulator.registers[0xF] = 0
         else:
-            system.registers[0xF] = 1
-        system.registers[x] = (system.registers[x] - system.registers[y]) % 256
-        system.registers[x] &= 0xFFFF
+            emulator.registers[0xF] = 1
+        emulator.registers[x] = (
+            emulator.registers[y] - emulator.registers[x]) % 255
+        emulator.registers[x] &= 0xFFFF
 
-    def bit_op_left_shift(self, opcode, system):
+    def bit_op_left_shift(self, opcode, emulator):
         # opcode 8XYE
         x = self.get_x(opcode)
-        system.registers[0xF] = self.find_most_significant_bit(
-            system.registers[x])
-        system.registers[x] <<= 1
-        system.registers[x] &= 0xFFFF
+        emulator.registers[0xF] = self.find_most_significant_bit(
+            emulator.registers[x])
+        emulator.registers[x] <<= 1
+        emulator.registers[x] &= 0xFFFF
 
-    def skip_if_neqr(self, opcode, system):
+    def skip_if_neqr(self, opcode, emulator):
         # opcode 9XY0
         # skips next instruction if Vx != Vy
         x = self.get_x(opcode)
         y = self.get_y(opcode)
         if self.verbose:
             print(
-                f"Skipping next instruction if: {system.registers[x]} != {system.registers[y]}, opcode: {opcode}")
-        if system.registers[x] != system.registers[y]:
+                f"Skipping next instruction if: {emulator.registers[x]} != {emulator.registers[y]}, opcode: {opcode}")
+        if emulator.registers[x] != emulator.registers[y]:
             if self.verbose:
                 print("skipping")
-            system.pc += 2
+            emulator.pc += 2
 
-    def mem_set(self, opcode, system):
+    def mem_set(self, opcode, emulator):
         # opcode ANNN
         # sets I = NNN
-        system.index = self.get_address(opcode)
+        emulator.index = self.get_address(opcode)
         if self.verbose:
-            print(f"Setting system to {system.index}")
+            print(f"Setting emulator to {emulator.index}")
 
-    def flow_jmp(self, opcode, system):
+    def flow_jmp(self, opcode, emulator):
         # opcode BNNN
         # sets PC to NNN + V0
-        system.pc = self.get_address(opcode) + system.registers[0]
+        emulator.pc = self.get_address(opcode) + emulator.registers[0]
 
-    def random_valr(self, opcode, system):
+    def random_valr(self, opcode, emulator):
         # opcode CXNN
         # sets Vx to a random number between 0 and 255 mod NN
         x = self.get_x(opcode)
         value = self.get_large_const(opcode)
-        system.registers[x] = randint(0, 256) & value
+        emulator.registers[x] = randint(0, 255) & value
 
-    def display(self, opcode, system):
+    def display(self, opcode, emulator):
         # opcode DXYN
         # draws on screen
         x = self.get_x(opcode)
         y = self.get_y(opcode)
         value = self.get_small_const(opcode)
-        system.screen.display(
-            system, system.registers[x], system.registers[y], value)
+        emulator.screen.display(
+            emulator, emulator.registers[x], emulator.registers[y], value)
 
-    def key_op_skip_eq(self, opcode, system):
+    def key_op_skip_eq(self, opcode, emulator):
         # opcode EX9E
         # skips the next instruction if key stored in Vx is set
         x = self.get_x(opcode)
-        if system.registers[x] == system.screen.key():
-            system.pc += 2
+        if emulator.registers[x] == emulator.screen.key():
+            emulator.pc += 2
 
-    def key_op_skip_neq(self, opcode, system):
+    def key_op_skip_neq(self, opcode, emulator):
         # opcode EXA1
         # skips the next instruction if key stored in Vx is set
         x = self.get_x(opcode)
-        if system.registers[x] != system.screen.key():
-            system.pc += 2
+        if emulator.registers[x] != emulator.screen.key():
+            emulator.pc += 2
 
-    def timer_get_delay(self, opcode, system):
+    def timer_get_delay(self, opcode, emulator):
         # opcode FX07
         # Gets the delay timer and stores it in Vx
         x = self.get_x(opcode)
-        system.registers[x] = system.delay_timer
+        emulator.registers[x] = emulator.delay_timer
 
-    def key_op_get_key(self, opcode, system):
+    def key_op_get_key(self, opcode, emulator):
         # opcode FX0A
         # supposed to wait until a key is pressed and store keypress in Vx
         # it is blocking
         x = self.get_x(opcode)
-        system.registers[x] = system.screen.get_key()
+        emulator.registers[x] = emulator.screen.get_key()
 
-    def set_delay_timer(self, opcode, system):
+    def set_delay_timer(self, opcode, emulator):
         # opcode FX15
         # Sets the delay_timer to Vx
         x = self.get_x(opcode)
-        system.delay_timer = system.registers[x]
+        emulator.delay_timer = emulator.registers[x]
 
-    def set_sound_timer(self, opcode, system):
+    def set_sound_timer(self, opcode, emulator):
         # opcode FX18
         # Sets the sound_timer to Vx
         x = self.get_x(opcode)
-        system.sound_timer = system.registers[x]
+        emulator.sound_timer = emulator.registers[x]
 
-    def mem_add(self, opcode, system):
+    def mem_add(self, opcode, emulator):
         # opcode FX1E
         # adds Vx to I, Vf is not affected
         x = self.get_x(opcode)
-        system.index += system.registers[x]
+        emulator.index += emulator.registers[x]
 
-    def mem_set_spritaddr(self, opcode, system):
+    def mem_set_spritaddr(self, opcode, emulator):
         # opcode FX29
         # Sets I to the location of the sprite[VX]
         # The sprites are located in the reserved memory space
         x = self.get_x(opcode)
-        system.index = (x % 0xF) * 5
+        emulator.index = (x % 0xF) * 5
         if self.verbose:
             print(f"Getting {x} sprite")
 
-    def binary_coded_decimal_store(self, opcode, system):
+    def binary_coded_decimal_store(self, opcode, emulator):
         # opcode FX33
         # stores the BCD representation of Vx in I
         x = self.get_x(opcode)
-        bcd_value = '{:03d}'.format(system.registers[x])
+        bcd_value = '{:03d}'.format(emulator.registers[x])
         for i in range(3):
-            system.memory[system.index + i] = int(bcd_value[i])
+            emulator.memory[emulator.index + i] = int(bcd_value[i])
 
-    def mem_reg_dump(self, opcode, system):
+    def mem_reg_dump(self, opcode, emulator):
         # opcode FX55
         # stores V0 to VX in memory starting at I, leaves i unchanged
-        for i in range(len(system.registers)):
-            system.memory[system.index + i] = system.registers[i]
+        for i in range(len(emulator.registers)):
+            emulator.memory[emulator.index + i] = emulator.registers[i]
 
-    def mem_reg_load(self, opcode, system):
+    def mem_reg_load(self, opcode, emulator):
         # opcode FX65
         # loads V0 to VX in memory starting at I, leaves i unchanged
-        for i in range(len(system.registers)):
-            system.registers[i] = system.memory[system.index + i]
+        for i in range(len(emulator.registers)):
+            emulator.registers[i] = emulator.memory[emulator.index + i]

@@ -4,10 +4,10 @@ import pygame
 from screen import Screen
 from fontset import FONTSET
 from time import sleep
-from random import randint
 
-class System():
-    def __init__(self, screen = None, fontset = FONTSET):
+
+class Emulator():
+    def __init__(self, screen=None, fontset=FONTSET):
         # the memory has 4096 memory locations
         self.memory = [0 for _ in range(0x1000)]
         # The stack could be placed in memory
@@ -55,18 +55,20 @@ class System():
 
 
 if __name__ == '__main__':
-    #The key map the screen wil use
+    # The key map the screen wil use
     keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4,
             pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r,
             pygame.K_a, pygame.K_s, pygame.K_d, pygame.K_f,
             pygame.K_z, pygame.K_x, pygame.K_c, pygame.K_v]
+    #screen = Screen(64, 32, 20, keys, show = False)
     screen = Screen(64, 32, 20, keys)
-    yac8pe = System(screen)
+    yac8pe = Emulator(screen)
     print(len(yac8pe.memory))
     # print(yac8pe.stack)
     print(len(yac8pe.registers))
     yac8pe.load_font()
-    yac8pe.load_rom('/home/fredrik/projects/c8_roms/roms/programs/IBM Logo.ch8')
+    yac8pe.load_rom(
+        '/home/fredrik/projects/c8_roms/roms/games/Space Invaders [David Winter].ch8')
     cpu = cpu.C8cpu(verbose=True)
     # print(yac8pe.memory)
     try:
@@ -76,6 +78,7 @@ if __name__ == '__main__':
             cpu.execute(instruction, opcode, yac8pe)
             yac8pe.delay_timer -= 1
             yac8pe.sound_timer -= 1
+            sleep(0.1)
             print(yac8pe, hex(instruction))
     except KeyboardInterrupt:
         print("got keyboard interupt")

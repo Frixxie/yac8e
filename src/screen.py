@@ -1,10 +1,13 @@
 import pygame
 from sys import exit
-from time import sleep
 
 
 class Screen():
-    def __init__(self, width, height, magnitude, keys):
+    def __init__(self, width, height, magnitude, keys, show=True):
+        self.show = True
+        if show == False:
+            self.show = False
+            return
         pygame.init()
         self.width = width
         self.height = height
@@ -14,7 +17,9 @@ class Screen():
             (width * magnitude, height * magnitude), 0, 32)
         self.keys = keys
 
-    def clear(self, color = (0, 0, 0)):
+    def clear(self, color=(0, 0, 0)):
+        if self.show == False:
+            return
         self.screen.fill(color)
 
     def get_key(self):
@@ -38,10 +43,12 @@ class Screen():
                         return i
         return None
 
-    def display(self, system, x, y, n):
-        system.registers[0xf] = 0
+    def display(self, emulator, x, y, n):
+        if self.show == False:
+            return
+        emulator.registers[0xf] = 0
         for i in range(n):
-            byte = system.memory[system.index + i]
+            byte = emulator.memory[emulator.index + i]
             ypos = ((y + i)) % self.height
             for j in range(8):
                 pixel = (byte >> (7 - j)) & 1
@@ -51,9 +58,10 @@ class Screen():
                 if pixel:
                     color = (255, 255, 255)
                     if cur_pixel == (255, 255, 255, 255):
-                        system.registers[0xf] = 1;
+                        emulator.registers[0xf] = 1
                         color = (0, 0, 0)
-                pygame.draw.rect(self.screen, color, ((xpos) * self.magnitude, (ypos) * self.magnitude, self.magnitude, self.magnitude))
+                pygame.draw.rect(self.screen, color, ((
+                    xpos) * self.magnitude, (ypos) * self.magnitude, self.magnitude, self.magnitude))
         pygame.display.update()
 
     def keyevents(self):
@@ -69,14 +77,3 @@ if __name__ == '__main__':
             pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r,
             pygame.K_a, pygame.K_s, pygame.K_d, pygame.K_f,
             pygame.K_z, pygame.K_x, pygame.K_c, pygame.K_v]
-
-    system = System()
-    screen = Screen(64, 32, 1, keys)
-
-    while True:
-        screen.clear()
-        for i in range(8):
-            for j in range(32):
-                system.memory[j] = randint(0, 2048)
-            screen.display(system, i * 8, 0, 32)
-
