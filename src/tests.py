@@ -1,36 +1,51 @@
 import unittest
 from cpu import C8cpu
-from system import System
+from emulator import Emulator
 
 
 class CpuTester(unittest.TestCase):
-    def test_big_fetch(self):
-        system = System()
-        system.memory = [0xDA, 0xBF]
+    def test_construct_opcode(self):
         cpu = C8cpu()
-        opcode = cpu.fetch(system)
+        opcode_parts = (0xDA, 0xBF)
+        opcode = cpu.construct_opcode(opcode_parts[0], opcode_parts[1])
         self.assertEqual(opcode, 0xDABF)
-        self.assertEqual(system.pc, 2)
+
+    def test_destruct_opcode(self):
+        cpu = C8cpu()
+        opcode = 0xDABF
+        opcode_parts = cpu.destruct_opcode(opcode)
+        self.assertEqual(opcode_parts[0], 0xDA)
+        self.assertEqual(opcode_parts[1], 0xBF)
+
+    def test_big_fetch(self):
+        emulator = Emulator()
+        emulator.memory = [0xDA, 0xBF]
+        cpu = C8cpu()
+        opcode = cpu.fetch(emulator)
+        self.assertEqual(opcode, 0xDABF)
+        self.assertEqual(emulator.pc, 2)
 
     def test_small_fetch(self):
-        system = System()
-        system.memory = [0xDA, 0xBF]
+        emulator = Emulator()
+        emulator.memory = [0xDA, 0xBF]
         cpu = C8cpu(False)
-        opcode = cpu.fetch(system)
+        opcode = cpu.fetch(emulator)
         self.assertEqual(opcode, 0xBFDA)
-        self.assertEqual(system.pc, 2)
+        self.assertEqual(emulator.pc, 2)
 
     def test_get_x(self):
         cpu = C8cpu()
         opcode = 0x8ABD
         x = cpu.get_x(opcode)
         self.assertEqual(x, 0xA)
+        self.assertNotEqual(x, 0xB)
 
     def test_get_y(self):
         cpu = C8cpu()
         opcode = 0x8ABD
         y = cpu.get_y(opcode)
         self.assertEqual(y, 0xB)
+        self.assertNotEqual(y, 0xA)
 
     def test_get_address(self):
         cpu = C8cpu()
@@ -68,231 +83,242 @@ class CpuTester(unittest.TestCase):
         self.assertEqual(bit_set, 1)
 
     def test_call(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
-        opcode = 0x0ABD
-        cpu.call(opcode, system)
-        self.assertEqual(system.pc, 0xABD)
+        emulator.pc = 0x2021
+        opcode = 0x2ABD
+        cpu.call(opcode, emulator)
+        self.assertEqual(emulator.pc, 0xABD)
+        self.assertEqual(emulator.stackpointer, 0xEA0 + 2)
+        self.assertEqual(emulator.memory[0xEA0], 0x20)
+        self.assertEqual(emulator.memory[0xEA0 + 1], 0x21)
 
     def test_flow_return(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
-        opcode = 0x8ABD
-        system.stack.append(cpu.get_address(opcode))
-        cpu.flow_return(0x00EE, system)
-        self.assertEqual(system.pc, 0xABD)
+        emulator.pc = 0x2021
+        opcode = 0x2ABD
+        cpu.call_subrutine(opcode, emulator)
+        self.assertEqual(emulator.pc, 0xABD)
+        cpu.flow_return(0x00EE, emulator)
+        self.assertEqual(emulator.stackpointer, 0xEA0)
+        self.assertEqual(emulator.pc, 0x2021)
 
     def test_flow_goto(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
         opcode = 0x1123
-        cpu.flow_goto(opcode, system)
-        self.assertEqual(system.pc, 0x123)
+        cpu.flow_goto(opcode, emulator)
+        self.assertEqual(emulator.pc, 0x123)
 
     def test_call_subrutine(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
+        emulator.pc = 0x2021
         opcode = 0x2ABD
-        cpu.call_subrutine(opcode, system)
-        self.assertEqual(system.pc, 0xABD)
+        cpu.call_subrutine(opcode, emulator)
+        self.assertEqual(emulator.pc, 0xABD)
+        self.assertEqual(emulator.stackpointer, 0xEA0 + 2)
+        self.assertEqual(emulator.memory[0xEA0], 0x20)
+        self.assertEqual(emulator.memory[0xEA0 + 1], 0x21)
 
     def test_skip_if_eqv(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
         opcode = 0x3277
-        system.registers[2] = 0x77
+        emulator.registers[2] = 0x77
         # test if it works
-        cpu.skip_if_eqv(opcode, system)
-        self.assertEqual(system.pc, 2)
-        system.registers[2] = 0x76
+        cpu.skip_if_eqv(opcode, emulator)
+        self.assertEqual(emulator.pc, 2)
+        emulator.registers[2] = 0x76
         # test if it works not increasing
-        cpu.skip_if_eqv(opcode, system)
-        self.assertEqual(system.pc, 2)
+        cpu.skip_if_eqv(opcode, emulator)
+        self.assertEqual(emulator.pc, 2)
 
     def test_skip_if_neqv(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
         opcode = 0x4277
-        system.registers[2] = 0x77
+        emulator.registers[2] = 0x77
         # test if it works
-        cpu.skip_if_neqv(opcode, system)
-        self.assertEqual(system.pc, 0)
-        system.registers[2] = 0x76
+        cpu.skip_if_neqv(opcode, emulator)
+        self.assertEqual(emulator.pc, 0)
+        emulator.registers[2] = 0x76
         # test if it works working
-        cpu.skip_if_neqv(opcode, system)
-        self.assertEqual(system.pc, 2)
+        cpu.skip_if_neqv(opcode, emulator)
+        self.assertEqual(emulator.pc, 2)
 
     def test_skip_if_eq(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
         opcode = 0x5260
-        system.registers[2] = 0x77
-        system.registers[6] = 0x77
+        emulator.registers[2] = 0x77
+        emulator.registers[6] = 0x77
         # test if it works
-        cpu.skip_if_eq(opcode, system)
-        self.assertEqual(system.pc, 2)
-        system.registers[2] = 0x76
+        cpu.skip_if_eq(opcode, emulator)
+        self.assertEqual(emulator.pc, 2)
+        emulator.registers[2] = 0x76
         # test if it works working
-        cpu.skip_if_eq(opcode, system)
-        self.assertEqual(system.pc, 2)
+        cpu.skip_if_eq(opcode, emulator)
+        self.assertEqual(emulator.pc, 2)
 
     def test_set_val_const(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
         opcode = 0x6277
-        cpu.set_val_const(opcode, system)
-        self.assertEqual(system.registers[2], 0x77)
+        cpu.set_val_const(opcode, emulator)
+        self.assertEqual(emulator.registers[2], 0x77)
 
     def test_add_val_const(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
         opcode = 0x7437
-        system.registers[4] = 0x11
-        cpu.add_val_const(opcode, system)
-        self.assertEqual(system.registers[4], 0x48)
+        emulator.registers[4] = 0x11
+        cpu.add_val_const(opcode, emulator)
+        self.assertEqual(emulator.registers[4], 0x48)
 
     def test_assign_reg(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
         opcode = 0x8430
-        system.registers[3] = 0x77
-        cpu.assign_reg(opcode, system)
-        self.assertEqual(system.registers[3], system.registers[4])
+        emulator.registers[3] = 0x77
+        cpu.assign_reg(opcode, emulator)
+        self.assertEqual(emulator.registers[3], emulator.registers[4])
 
     def test_bit_op_or(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
         opcode = 0x8431
-        system.registers[3] = 0x44
-        cpu.bit_op_or(opcode, system)
-        self.assertEqual(system.registers[4], 0x44)
+        emulator.registers[3] = 0x44
+        cpu.bit_op_or(opcode, emulator)
+        self.assertEqual(emulator.registers[4], 0x44)
 
     def test_bit_op_and(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
         opcode = 0x8432
-        system.registers[3] = 0x44
-        cpu.bit_op_and(opcode, system)
-        self.assertEqual(system.registers[4], 0)
+        emulator.registers[3] = 0x44
+        cpu.bit_op_and(opcode, emulator)
+        self.assertEqual(emulator.registers[4], 0)
 
     def test_bit_op_xor(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
         opcode = 0x8433
-        system.registers[3] = 0x44
-        cpu.bit_op_xor(opcode, system)
-        self.assertEqual(system.registers[4], 0x44)
+        emulator.registers[3] = 0x44
+        cpu.bit_op_xor(opcode, emulator)
+        self.assertEqual(emulator.registers[4], 0x44)
 
     def test_math_add(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
         opcode = 0x8434
-        system.registers[4] = 15
-        system.registers[3] = 20
-        cpu.math_add(opcode, system)
-        self.assertEqual(system.registers[4], 35)
-        self.assertEqual(system.registers[0xF], 0)
-        system.registers[4] = 255
-        system.registers[3] = 2
-        cpu.math_add(opcode, system)
-        self.assertEqual(system.registers[4], 1)
-        self.assertEqual(system.registers[0xF], 1)
+        emulator.registers[4] = 15
+        emulator.registers[3] = 20
+        cpu.math_add(opcode, emulator)
+        self.assertEqual(emulator.registers[4], 35)
+        self.assertEqual(emulator.registers[0xF], 0)
+        emulator.registers[4] = 255
+        emulator.registers[3] = 2
+        cpu.math_add(opcode, emulator)
+        self.assertEqual(emulator.registers[4], 1)
+        self.assertEqual(emulator.registers[0xF], 1)
 
     def test_math_sub(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
         opcode = 0x8435
-        system.registers[4] = 20
-        system.registers[3] = 15
-        cpu.math_sub(opcode, system)
-        self.assertEqual(system.registers[4], 5)
-        self.assertEqual(system.registers[0xF], 1)
-        system.registers[4] = 1
-        system.registers[3] = 2
-        cpu.math_sub(opcode, system)
-        self.assertEqual(system.registers[4], 255)
-        self.assertEqual(system.registers[0xF], 0)
+        emulator.registers[4] = 20
+        emulator.registers[3] = 15
+        cpu.math_sub(opcode, emulator)
+        self.assertEqual(emulator.registers[4], 5)
+        self.assertEqual(emulator.registers[0xF], 1)
+        emulator.registers[4] = 1
+        emulator.registers[3] = 2
+        cpu.math_sub(opcode, emulator)
+        self.assertEqual(emulator.registers[4], 255)
+        self.assertEqual(emulator.registers[0xF], 0)
 
     def test_bit_op_right_shift(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
         opcode = 0x8435
-        system.registers[4] = 4
-        cpu.bit_op_right_shift(opcode, system)
-        self.assertEqual(system.registers[4], 2)
-        self.assertEqual(system.registers[0xF], 0)
-        system.registers[4] = 3
-        cpu.bit_op_right_shift(opcode, system)
-        self.assertEqual(system.registers[4], 1)
-        self.assertEqual(system.registers[0xF], 1)
+        emulator.registers[4] = 4
+        cpu.bit_op_right_shift(opcode, emulator)
+        self.assertEqual(emulator.registers[4], 2)
+        self.assertEqual(emulator.registers[0xF], 0)
+        emulator.registers[4] = 3
+        cpu.bit_op_right_shift(opcode, emulator)
+        self.assertEqual(emulator.registers[4], 1)
+        self.assertEqual(emulator.registers[0xF], 1)
 
     def test_math_sub_regs(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
         opcode = 0x8436
-        system.registers[4] = 20
-        system.registers[3] = 15
+        emulator.registers[4] = 20
+        emulator.registers[3] = 15
 
-        cpu.math_sub(opcode, system)
-        self.assertEqual(system.registers[4], 5)
-        self.assertEqual(system.registers[0xF], 1)
+        cpu.math_sub(opcode, emulator)
+        self.assertEqual(emulator.registers[4], 5)
+        self.assertEqual(emulator.registers[0xF], 1)
 
-        system.registers[4] = 1
-        system.registers[3] = 2
+        emulator.registers[4] = 1
+        emulator.registers[3] = 2
 
-        cpu.math_sub(opcode, system)
-        self.assertEqual(system.registers[4], 255)
-        self.assertEqual(system.registers[0xF], 0)
+        cpu.math_sub(opcode, emulator)
+        self.assertEqual(emulator.registers[4], 255)
+        self.assertEqual(emulator.registers[0xF], 0)
 
     def test_bit_op_left_shift(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
         opcode = 0x8437
-        system.registers[4] = 4
+        emulator.registers[4] = 4
 
-        cpu.bit_op_left_shift(opcode, system)
-        self.assertEqual(system.registers[4], 8)
-        self.assertEqual(system.registers[0xF], 1)
+        cpu.bit_op_left_shift(opcode, emulator)
+        self.assertEqual(emulator.registers[4], 8)
+        self.assertEqual(emulator.registers[0xF], 1)
 
-        system.registers[4] = 3
+        emulator.registers[4] = 3
 
-        cpu.bit_op_left_shift(opcode, system)
-        self.assertEqual(system.registers[4], 6)
-        self.assertEqual(system.registers[0xF], 1)
+        cpu.bit_op_left_shift(opcode, emulator)
+        self.assertEqual(emulator.registers[4], 6)
+        self.assertEqual(emulator.registers[0xF], 1)
 
     def test_skip_if_neqr(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
         opcode = 0x9340
-        system.registers[3] = 15
-        system.registers[4] = 15
+        emulator.registers[3] = 15
+        emulator.registers[4] = 15
         # test if it not works
-        cpu.skip_if_neqr(opcode, system)
-        self.assertEqual(system.pc, 0)
-        system.registers[3] = 15
-        system.registers[4] = 16
+        cpu.skip_if_neqr(opcode, emulator)
+        self.assertEqual(emulator.pc, 0)
+        emulator.registers[3] = 15
+        emulator.registers[4] = 16
         # test if it works
-        cpu.skip_if_neqr(opcode, system)
-        self.assertEqual(system.pc, 2)
+        cpu.skip_if_neqr(opcode, emulator)
+        self.assertEqual(emulator.pc, 2)
 
     def test_mem_set(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
         opcode = 0xA123
-        cpu.mem_set(opcode, system)
-        self.assertEqual(system.index, 0x123)
+        cpu.mem_set(opcode, emulator)
+        self.assertEqual(emulator.index, 0x123)
 
     def test_flow_jump(self):
-        system = System()
+        emulator = Emulator()
         cpu = C8cpu()
         opcode = 0xB123
 
-        cpu.flow_jmp(opcode, system)
-        self.assertEqual(system.pc, 0x123)
+        cpu.flow_jmp(opcode, emulator)
+        self.assertEqual(emulator.pc, 0x123)
 
-        system.registers[0] = 2
-        cpu.flow_jmp(opcode, system)
-        self.assertEqual(system.pc, 0x125)
+        emulator.registers[0] = 2
+        cpu.flow_jmp(opcode, emulator)
+        self.assertEqual(emulator.pc, 0x125)
 
     def test_decode(self):
         cpu = C8cpu()
@@ -474,183 +500,182 @@ class CpuTester(unittest.TestCase):
 
     def test_execute(self):
         cpu = C8cpu(testing=True)
-        system = System()
+        emulator = Emulator()
 
         # Call
         instruction = 0x0123
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # display_clear
         instruction = 0x00E0
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # flow_return
         instruction = 0x00EE
-        system.stack.append(0x999)
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # flow_goto
         instruction = 0x1123
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # call subrutine
         instruction = 0x2123
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # skip if eqv
         instruction = 0x3123
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # skip if neqv
         instruction = 0x4123
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # skip if eq
         instruction = 0x5120
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # set val const
         instruction = 0x6120
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # add val const
         instruction = 0x7120
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # addign reg
         instruction = 0x8120
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # bit op or
         instruction = 0x8121
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # bit op and
         instruction = 0x8122
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # bit op xor
         instruction = 0x8123
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # math add
         instruction = 0x8124
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # math sub
         instruction = 0x8125
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # bit op right shift
         instruction = 0x8126
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # math sub regs
         instruction = 0x8127
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # bit op left shift
         instruction = 0x812E
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # skip if neqr
         instruction = 0x9120
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # mem set
         instruction = 0xA12E
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # flow jmp
         instruction = 0xB12E
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # flow random_valr
         instruction = 0xC12E
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # display
         instruction = 0xD12E
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # key op skip eq
         instruction = 0xE19E
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # key op skip neq
         instruction = 0xE1A1
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # timer get delay
         instruction = 0xF107
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # key op get key
         instruction = 0xF10A
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # set delay timer
         instruction = 0xF115
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # set sound timer
         instruction = 0xF118
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # mem add
         instruction = 0xF11E
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # mem set spritaddr
         instruction = 0xF129
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # binary coded decimal store
         instruction = 0xF133
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # mem reg dump
         instruction = 0xF155
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
         # mem reg load
         instruction = 0xF165
         opcode = cpu.decode(instruction)
-        cpu.execute(instruction, opcode, system)
+        cpu.execute(instruction, opcode, emulator)
 
 
 if __name__ == '__main__':
