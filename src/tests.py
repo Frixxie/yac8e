@@ -25,12 +25,14 @@ class CpuTester(unittest.TestCase):
         opcode = 0x8ABD
         x = cpu.get_x(opcode)
         self.assertEqual(x, 0xA)
+        self.assertNotEqual(x, 0xB)
 
     def test_get_y(self):
         cpu = C8cpu()
         opcode = 0x8ABD
         y = cpu.get_y(opcode)
         self.assertEqual(y, 0xB)
+        self.assertNotEqual(y, 0xA)
 
     def test_get_address(self):
         cpu = C8cpu()

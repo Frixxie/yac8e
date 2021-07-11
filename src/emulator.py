@@ -10,9 +10,9 @@ class Emulator():
     def __init__(self, screen=None, fontset=FONTSET):
         # the memory has 4096 memory locations
         self.memory = [0 for _ in range(0x1000)]
-        # The stack could be placed in memory
-        self.stack = list()
-        # Has 16 registers V0 to VF
+        # The stackpointer
+        self.stackpointer = 0
+        # Has 16 registers, which are 0 to 0xF (V0 to VF)
         self.registers = [0 for _ in range(0xF + 1)]
         # Index register
         self.index = 0

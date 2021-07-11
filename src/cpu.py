@@ -56,13 +56,12 @@ class C8cpu():
     def fetch(self, emulator):
         instruction = None
         try:
-            instruction = emulator.memory[emulator.pc]
             if self.big_endianness:
-                instruction <<= 8
-                instruction |= emulator.memory[emulator.pc + 1]
+                instruction = self.construct_opcode(
+                    emulator.memory[emulator.pc], emulator.memory[emulator.pc + 1])
             else:
-                instruction = (
-                    emulator.memory[emulator.pc + 1] << 8) | instruction
+                instruction = self.construct_opcode(
+                    emulator.memory[emulator.pc + 1], emulator.memory[emulator.pc])
         except IndexError:
             print(f"pc {emulator.pc} out of memory bounds")
             exit(0)
@@ -86,7 +85,7 @@ class C8cpu():
                 # opcode 0x0NNN
                 return (first_word, 2)
         elif first_word == 8:
-            # opcdoe 0x8XY0 to 0x8XY7 and 0x8XYE
+            # opcode 0x8XY0 to 0x8XY7 and 0x8XYE
             last_word = instruction & 0xF
             return (first_word, last_word)
         elif first_word == 0xE:
@@ -116,29 +115,35 @@ class C8cpu():
                   self.instruction_executed)
         operation(instruction, emulator)
 
-    def get_x(self, opcode):
+    def construct_opcode(self, highbyte: int, lowbyte: int) -> int:
+        return (highbyte << 8) | lowbyte
+
+    def destruct_opcode(self, opcode: int) -> tuple:
+        return (opcode & 0xFF00 >> 8, opcode & 0xFF)
+
+    def get_x(self, opcode: int) -> int:
         # opcode 0x8ABD -> 0xA
         # return (opcode >> 8) & 0xF
         return (opcode & 0x0F00) >> 8
 
-    def get_y(self, opcode):
+    def get_y(self, opcode: int) -> int:
         # opcode 0x8ABD -> 0xB
         # return (opcode >> 4) & 0xF
         return (opcode & 0x00F0) >> 4
 
-    def get_address(self, opcode):
+    def get_address(self, opcode: int) -> int:
         # Gets the last 12 bytes
         return (opcode & 0x0FFF)
 
-    def get_small_const(self, opcode):
+    def get_small_const(self, opcode: int) -> int:
         # Gets the last 4 bytes
         return (opcode & 0x000F)
 
-    def get_large_const(self, opcode):
+    def get_large_const(self, opcode: int) -> int:
         # Gets the last 8 bytes
         return (opcode & 0x00FF)
 
-    def find_bit_size(self, num):
+    def find_bit_size(self, num: int) -> int:
         # TODO: fix for negative numbers
         size = 0
         while num > 0:
@@ -146,10 +151,10 @@ class C8cpu():
             size += 1
         return size
 
-    def find_least_significant_bit(self, num):
+    def find_least_significant_bit(self, num: int) -> int:
         return num & 0b1
 
-    def find_most_significant_bit(self, num):
+    def find_most_significant_bit(self, num: int) -> int:
         return num & (0b1 << (self.find_bit_size(num) - 1)) > 0 if 1 else 0
 
     def call(self, opcode, emulator):
