@@ -116,10 +116,15 @@ class C8cpu():
         operation(instruction, emulator)
 
     def construct_opcode(self, highbyte: int, lowbyte: int) -> int:
-        return (highbyte << 8) | lowbyte
+        # Constructs a opcode:
+        # 0xDA, 0xBF -> 0xDABF
+        return ((highbyte << 8) | lowbyte) & 0xFFFF
 
     def destruct_opcode(self, opcode: int) -> tuple:
-        return (opcode & 0xFF00 >> 8, opcode & 0xFF)
+        # Destructs a opcode:
+        # 0xDABF -> 0xDA, 0xBF
+        # Order of operations is a thing here:
+        return ((opcode & 0xFF00) >> 8, opcode & 0xFF)
 
     def get_x(self, opcode: int) -> int:
         # opcode 0x8ABD -> 0xA
@@ -160,9 +165,7 @@ class C8cpu():
     def call(self, opcode, emulator):
         # opcode 0x0NNN
         # execute MLR (machine language routine)
-        address = self.get_address(opcode)
-        emulator.stack.append(emulator.pc)
-        emulator.pc = address
+        self.call_subrutine(opcode, emulator)
         if self.verbose:
             print(f"Calling {opcode & 0xFFF}, opcode: {opcode}")
 
@@ -176,25 +179,31 @@ class C8cpu():
     def flow_return(self, opcode, emulator):
         # opcode 0x00EE
         # return from subrutine
-        address = 0
-        if len(emulator.stack) > 0:
-            address = emulator.stack.pop(0)
-        emulator.pc = address
+        emulator.pc = self.construct_opcode(
+            emulator.memory[emulator.stackpointer - 2], emulator.memory[emulator.stackpointer - 1])
+        emulator.stackpointer -= 2
         if self.verbose:
-            print(f"Returning from subrutine!, opcode: {opcode}")
+            print(
+                f"Returning from subrutine!, opcode: {hex(opcode)}, pc: {hex(emulator.pc)}")
 
     def flow_goto(self, opcode, emulator):
         # opcode 0x1NNN
         # goto address NNN
         emulator.pc = self.get_address(opcode)
+        if self.verbose:
+            print(f"Going to address: {hex(emulator.pc)}")
 
     def call_subrutine(self, opcode, emulator):
         # opcode 0x2NNN
         # call subrutine
-        emulator.stack.append(emulator.pc)
+        prev_pc = self.destruct_opcode(emulator.pc)
+        emulator.memory[emulator.stackpointer] = prev_pc[0]
+        emulator.memory[emulator.stackpointer + 1] = prev_pc[1]
+        emulator.stackpointer += 2
         emulator.pc = self.get_address(opcode)
         if self.verbose:
-            print(f"Calling subrutine @ {opcode & 0x0FFF}, opcode: {opcode}")
+            print(
+                f"Calling subrutine @ {opcode & 0x0FFF}, opcode: {opcode}, pc is now: {emulator.pc}, stackpointer is: {emulator.stackpointer}")
 
     def skip_if_eqv(self, opcode, emulator):
         # opcode 0x3XNN
@@ -305,6 +314,8 @@ class C8cpu():
         # Vx += Vy and sets carry flag if Vx overflows
         x = self.get_x(opcode)
         y = self.get_y(opcode)
+        if self.verbose:
+            print("Adding: {emulator.register[x]} += {emulator.register[y]}")
         if emulator.registers[x] + emulator.registers[y] > 255:
             emulator.registers[0xF] = 1
             emulator.registers[x] = (
@@ -314,42 +325,62 @@ class C8cpu():
                 emulator.registers[x] + emulator.registers[y])
             emulator.registers[0xF] = 0
         emulator.registers[x] &= 0xFFFF
+        if self.verbose:
+            print("Result: {emulator.registers[x]}")
 
     def math_sub(self, opcode, emulator):
         # opcode 8XY5
         # Vx -= Vy and sets carry flag to 0 if there is a borrow and 1 when not
         x = self.get_x(opcode)
         y = self.get_y(opcode)
+        if self.verbose:
+            print(
+                "Substracting: {emulator.register[x]} -= {emulator.register[y]}")
         if emulator.registers[x] - emulator.registers[y] < 0:
-            emulator.registers[x] -= 256 + emulator.registers[y]
+            emulator.registers[x] = 256 + \
+                emulator.registers[x] - emulator.registers[y]
             emulator.registers[0xF] = 0
         else:
             emulator.registers[x] -= emulator.registers[y]
             emulator.registers[0xF] = 1
-        # to handle underflow
+        # to remain in correct format
         emulator.registers[x] &= 0xFFFF
+        if self.verbose:
+            print("Result: {emulator.registers[x]}")
 
     def bit_op_right_shift(self, opcode, emulator):
         # opcode 8XY6
         # Stores least significant bit in Vf and rightshifts Vx by 1
         x = self.get_x(opcode)
+        if self.verbose:
+            print("Substracting: {emulator.register[x]} >>= 1")
         emulator.registers[0xF] = self.find_least_significant_bit(
             emulator.registers[x])
         emulator.registers[x] >>= 1
         emulator.registers[x] &= 0xFFFF
+        if self.verbose:
+            print("Result: {emulator.registers[x]}")
 
     def math_sub_regs(self, opcode, emulator):
         # opcode 8XY7
         # Sets Vx to Vy - Vx, Vf is set to 0 when there is a borrow. and 1 when there is not.
         x = self.get_x(opcode)
         y = self.get_y(opcode)
-        if emulator.registers[y] - emulator.registers[x] < 0:
-            emulator.registers[0xF] = 0
-        else:
+        if self.verbose:
+            print(
+                "Substracting: {emulator.register[x]} = {emulator.register[y]} - emulator.registers[x]")
+        if emulator.registers[y] > emulator.registers[x]:
+            emulator.registers[x] = emulator.registers[y] - \
+                emulator.registers[x]
             emulator.registers[0xF] = 1
-        emulator.registers[x] = (
-            emulator.registers[y] - emulator.registers[x]) % 255
+        else:
+            emulator.registers[x] = 256 + \
+                emulator.registers[y] - emulator.registers[x]
+            emulator.registers[0xF] = 0
+        # to remain in correct format
         emulator.registers[x] &= 0xFFFF
+        if self.verbose:
+            print("Result: {emulator.registers[x]}")
 
     def bit_op_left_shift(self, opcode, emulator):
         # opcode 8XYE
@@ -465,11 +496,13 @@ class C8cpu():
     def mem_reg_dump(self, opcode, emulator):
         # opcode FX55
         # stores V0 to VX in memory starting at I, leaves i unchanged
-        for i in range(len(emulator.registers)):
+        x = self.get_x(opcode)
+        for i in range(x + 1):
             emulator.memory[emulator.index + i] = emulator.registers[i]
 
     def mem_reg_load(self, opcode, emulator):
         # opcode FX65
         # loads V0 to VX in memory starting at I, leaves i unchanged
-        for i in range(len(emulator.registers)):
+        x = self.get_x(opcode)
+        for i in range(x + 1):
             emulator.registers[i] = emulator.memory[emulator.index + i]

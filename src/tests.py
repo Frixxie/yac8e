@@ -4,6 +4,19 @@ from emulator import Emulator
 
 
 class CpuTester(unittest.TestCase):
+    def test_construct_opcode(self):
+        cpu = C8cpu()
+        opcode_parts = (0xDA, 0xBF)
+        opcode = cpu.construct_opcode(opcode_parts[0], opcode_parts[1])
+        self.assertEqual(opcode, 0xDABF)
+
+    def test_destruct_opcode(self):
+        cpu = C8cpu()
+        opcode = 0xDABF
+        opcode_parts = cpu.destruct_opcode(opcode)
+        self.assertEqual(opcode_parts[0], 0xDA)
+        self.assertEqual(opcode_parts[1], 0xBF)
+
     def test_big_fetch(self):
         emulator = Emulator()
         emulator.memory = [0xDA, 0xBF]
@@ -72,17 +85,24 @@ class CpuTester(unittest.TestCase):
     def test_call(self):
         emulator = Emulator()
         cpu = C8cpu()
-        opcode = 0x0ABD
+        emulator.pc = 0x2021
+        opcode = 0x2ABD
         cpu.call(opcode, emulator)
         self.assertEqual(emulator.pc, 0xABD)
+        self.assertEqual(emulator.stackpointer, 0xEA0 + 2)
+        self.assertEqual(emulator.memory[0xEA0], 0x20)
+        self.assertEqual(emulator.memory[0xEA0 + 1], 0x21)
 
     def test_flow_return(self):
         emulator = Emulator()
         cpu = C8cpu()
-        opcode = 0x8ABD
-        emulator.stack.append(cpu.get_address(opcode))
-        cpu.flow_return(0x00EE, emulator)
+        emulator.pc = 0x2021
+        opcode = 0x2ABD
+        cpu.call_subrutine(opcode, emulator)
         self.assertEqual(emulator.pc, 0xABD)
+        cpu.flow_return(0x00EE, emulator)
+        self.assertEqual(emulator.stackpointer, 0xEA0)
+        self.assertEqual(emulator.pc, 0x2021)
 
     def test_flow_goto(self):
         emulator = Emulator()
@@ -94,9 +114,13 @@ class CpuTester(unittest.TestCase):
     def test_call_subrutine(self):
         emulator = Emulator()
         cpu = C8cpu()
+        emulator.pc = 0x2021
         opcode = 0x2ABD
         cpu.call_subrutine(opcode, emulator)
         self.assertEqual(emulator.pc, 0xABD)
+        self.assertEqual(emulator.stackpointer, 0xEA0 + 2)
+        self.assertEqual(emulator.memory[0xEA0], 0x20)
+        self.assertEqual(emulator.memory[0xEA0 + 1], 0x21)
 
     def test_skip_if_eqv(self):
         emulator = Emulator()
@@ -490,7 +514,6 @@ class CpuTester(unittest.TestCase):
 
         # flow_return
         instruction = 0x00EE
-        emulator.stack.append(0x999)
         opcode = cpu.decode(instruction)
         cpu.execute(instruction, opcode, emulator)
 

@@ -11,7 +11,7 @@ class Emulator():
         # the memory has 4096 memory locations
         self.memory = [0 for _ in range(0x1000)]
         # The stackpointer
-        self.stackpointer = 0
+        self.stackpointer = 0xEA0
         # Has 16 registers, which are 0 to 0xF (V0 to VF)
         self.registers = [0 for _ in range(0xF + 1)]
         # Index register
@@ -28,7 +28,7 @@ class Emulator():
         self.fontset = fontset
 
     def __str__(self):
-        return f"{self.pc},{self.index}\n{self.registers}\n{self.stack}"
+        return f"{self.pc},{self.index}\n{self.registers}\n{self.stackpointer}"
 
     def load_font(self):
         """loads a font into reserved space"""
@@ -68,17 +68,20 @@ if __name__ == '__main__':
     print(len(yac8pe.registers))
     yac8pe.load_font()
     yac8pe.load_rom(
-        '/home/fredrik/projects/c8_roms/roms/games/Space Invaders [David Winter].ch8')
+        '/home/fredrik/projects/c8_roms/roms/games/Pong (1 player).ch8')
     cpu = cpu.C8cpu(verbose=True)
     # print(yac8pe.memory)
     try:
         while True:
+            # ideally this would run at 60 hz so 60 cycles per sec
+            # we are currently debugging so not following this.
             instruction = cpu.fetch(yac8pe)
             opcode = cpu.decode(instruction)
             cpu.execute(instruction, opcode, yac8pe)
             yac8pe.delay_timer -= 1
             yac8pe.sound_timer -= 1
-            sleep(0.1)
+            # currently to check that things are working
+            # sleep(0.01)
             print(yac8pe, hex(instruction))
     except KeyboardInterrupt:
         print("got keyboard interupt")
