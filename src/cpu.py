@@ -252,7 +252,7 @@ class C8cpu():
         if self.verbose:
             print(f"Setting register Vx {x} to {value}, opcode: {opcode}")
         emulator.registers[x] = value
-        emulator.registers[x] &= 0xFFFF
+        emulator.registers[x] &= 0xFF
 
     def add_val_const(self, opcode, emulator):
         # opcode 0x7XNN
@@ -263,7 +263,7 @@ class C8cpu():
             print(
                 f"Adding {value} to x, {x} {emulator.registers[x]}, opcode: {opcode}")
         emulator.registers[x] += value
-        emulator.registers[x] &= 0xFFFF
+        emulator.registers[x] &= 0xFF
 
     def assign_reg(self, opcode, emulator):
         # opcode 8XY0
@@ -274,7 +274,7 @@ class C8cpu():
             print(
                 f"Assigning {emulator.registers[y]}, {y} to {emulator.registers[x]}, {x}, opcode: {opcode}")
         emulator.registers[x] = emulator.registers[y]
-        emulator.registers[x] &= 0xFFFF
+        emulator.registers[x] &= 0xFF
 
     def bit_op_or(self, opcode, emulator):
         # opcode 8XY1
@@ -285,7 +285,7 @@ class C8cpu():
             print(
                 f"Oring {emulator.registers[y]}, {y} to {emulator.registers[x]} {x}, opcode: {opcode}")
         emulator.registers[x] |= emulator.registers[y]
-        emulator.registers[x] &= 0xFFFF
+        emulator.registers[x] &= 0xFF
 
     def bit_op_and(self, opcode, emulator):
         # opcode 8XY2
@@ -296,7 +296,7 @@ class C8cpu():
             print(
                 f"Anding {emulator.registers[y]}, {y} to {emulator.registers[x]} {x}, opcode: {opcode}")
         emulator.registers[x] &= emulator.registers[y]
-        emulator.registers[x] &= 0xFFFF
+        emulator.registers[x] &= 0xFF
 
     def bit_op_xor(self, opcode, emulator):
         # opcode 8XY3
@@ -307,7 +307,7 @@ class C8cpu():
             print(
                 f"Xoring {emulator.registers[y]}, {y} to {emulator.registers[x]} {x}, opcode: {opcode}")
         emulator.registers[x] ^= emulator.registers[y]
-        emulator.registers[x] &= 0xFFFF
+        emulator.registers[x] &= 0xFF
 
     def math_add(self, opcode, emulator):
         # opcode 8XY4
@@ -324,7 +324,7 @@ class C8cpu():
             emulator.registers[x] = (
                 emulator.registers[x] + emulator.registers[y])
             emulator.registers[0xF] = 0
-        emulator.registers[x] &= 0xFFFF
+        emulator.registers[x] &= 0xFF
         if self.verbose:
             print("Result: {emulator.registers[x]}")
 
@@ -344,7 +344,7 @@ class C8cpu():
             emulator.registers[x] -= emulator.registers[y]
             emulator.registers[0xF] = 1
         # to remain in correct format
-        emulator.registers[x] &= 0xFFFF
+        emulator.registers[x] &= 0xFF
         if self.verbose:
             print("Result: {emulator.registers[x]}")
 
@@ -357,7 +357,7 @@ class C8cpu():
         emulator.registers[0xF] = self.find_least_significant_bit(
             emulator.registers[x])
         emulator.registers[x] >>= 1
-        emulator.registers[x] &= 0xFFFF
+        emulator.registers[x] &= 0xFF
         if self.verbose:
             print("Result: {emulator.registers[x]}")
 
@@ -378,7 +378,7 @@ class C8cpu():
                 emulator.registers[y] - emulator.registers[x]
             emulator.registers[0xF] = 0
         # to remain in correct format
-        emulator.registers[x] &= 0xFFFF
+        emulator.registers[x] &= 0xFF
         if self.verbose:
             print("Result: {emulator.registers[x]}")
 
@@ -388,7 +388,7 @@ class C8cpu():
         emulator.registers[0xF] = self.find_most_significant_bit(
             emulator.registers[x])
         emulator.registers[x] <<= 1
-        emulator.registers[x] &= 0xFFFF
+        emulator.registers[x] &= 0xFF
 
     def skip_if_neqr(self, opcode, emulator):
         # opcode 9XY0
@@ -421,6 +421,7 @@ class C8cpu():
         x = self.get_x(opcode)
         value = self.get_large_const(opcode)
         emulator.registers[x] = randint(0, 255) & value
+        emulator.registers[x] &= 0xFF
 
     def display(self, opcode, emulator):
         # opcode DXYN
@@ -450,6 +451,7 @@ class C8cpu():
         # Gets the delay timer and stores it in Vx
         x = self.get_x(opcode)
         emulator.registers[x] = emulator.delay_timer
+        emulator.registers[x] &= 0xFF
 
     def key_op_get_key(self, opcode, emulator):
         # opcode FX0A
@@ -457,6 +459,7 @@ class C8cpu():
         # it is blocking
         x = self.get_x(opcode)
         emulator.registers[x] = emulator.screen.get_key()
+        emulator.registers[x] &= 0xFF
 
     def set_delay_timer(self, opcode, emulator):
         # opcode FX15
@@ -481,7 +484,7 @@ class C8cpu():
         # Sets I to the location of the sprite[VX]
         # The sprites are located in the reserved memory space
         x = self.get_x(opcode)
-        emulator.index = (x % 0xF) * 5
+        emulator.index = x * 5
         if self.verbose:
             print(f"Getting {x} sprite")
 

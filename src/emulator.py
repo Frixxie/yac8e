@@ -68,7 +68,7 @@ if __name__ == '__main__':
     print(len(yac8pe.registers))
     yac8pe.load_font()
     yac8pe.load_rom(
-        '/home/fredrik/projects/c8_roms/roms/games/Pong (1 player).ch8')
+        '/home/fredrik/projects/c8_roms/roms/games/Space Invaders [David Winter].ch8')
     cpu = cpu.C8cpu(verbose=True)
     # print(yac8pe.memory)
     try:
@@ -81,7 +81,6 @@ if __name__ == '__main__':
             yac8pe.delay_timer -= 1
             yac8pe.sound_timer -= 1
             # currently to check that things are working
-            # sleep(0.01)
             print(yac8pe, hex(instruction))
     except KeyboardInterrupt:
         print("got keyboard interupt")
