@@ -1,5 +1,6 @@
-import pygame
 from sys import exit
+
+import pygame
 
 
 class Screen():
@@ -60,8 +61,10 @@ class Screen():
                     if cur_pixel == (255, 255, 255, 255):
                         emulator.registers[0xf] = 1
                         color = (0, 0, 0)
-                pygame.draw.rect(self.screen, color, ((
-                    xpos) * self.magnitude, (ypos) * self.magnitude, self.magnitude, self.magnitude))
+                pygame.draw.rect(
+                    self.screen, color,
+                    ((xpos) * self.magnitude,
+                     (ypos) * self.magnitude, self.magnitude, self.magnitude))
         pygame.display.update()
 
     def keyevents(self):
@@ -73,7 +76,8 @@ class Screen():
 
 
 if __name__ == '__main__':
-    keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4,
-            pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r,
-            pygame.K_a, pygame.K_s, pygame.K_d, pygame.K_f,
-            pygame.K_z, pygame.K_x, pygame.K_c, pygame.K_v]
+    keys = [
+        pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_q, pygame.K_w,
+        pygame.K_e, pygame.K_r, pygame.K_a, pygame.K_s, pygame.K_d, pygame.K_f,
+        pygame.K_z, pygame.K_x, pygame.K_c, pygame.K_v
+    ]

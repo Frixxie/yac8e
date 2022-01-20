@@ -1,9 +1,11 @@
 #!/bin/python3
-import cpu
+from time import sleep, time
+
 import pygame
-from screen import Screen
+
+import cpu
 from fontset import FONTSET
-from time import sleep
+from screen import Screen
 
 
 class Emulator():
@@ -68,11 +70,12 @@ if __name__ == '__main__':
     print(len(yac8pe.registers))
     yac8pe.load_font()
     yac8pe.load_rom(
-        '/home/fredrik/projects/c8_roms/roms/games/Space Invaders [David Winter].ch8')
-    cpu = cpu.C8cpu(verbose=True)
+        '/home/fredrik/projects/yac8pe/roms/roms/games/Breakout (Brix hack) [David Winter, 1997].ch8')
+    cpu = cpu.C8cpu()
     # print(yac8pe.memory)
     try:
         while True:
+            starttime = time()
             # ideally this would run at 60 hz so 60 cycles per sec
             # we are currently debugging so not following this.
             instruction = cpu.fetch(yac8pe)
@@ -81,6 +84,9 @@ if __name__ == '__main__':
             yac8pe.delay_timer -= 1
             yac8pe.sound_timer -= 1
             # currently to check that things are working
-            print(yac8pe, hex(instruction))
+            current_time = time()
+            period = 1 / 120
+            sleep(period - (current_time - starttime))
+            print(cpu, period - (current_time - starttime))
     except KeyboardInterrupt:
         print("got keyboard interupt")

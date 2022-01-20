@@ -1,11 +1,14 @@
 #!/bin/python
 
-from sys import exit
 from random import randint
+from sys import exit
 
 
 class C8cpu():
-    def __init__(self, big_endianness: bool = True, verbose: bool = False, testing: bool = False):
+    def __init__(self,
+                 big_endianness: bool = True,
+                 verbose: bool = False,
+                 testing: bool = False):
         # Big or little endianness
         # True or false
         self.big_endianness: bool = big_endianness
@@ -13,42 +16,43 @@ class C8cpu():
         self.testing: bool = testing
         self.instruction_executed: int = 0
         # all the operations which an opcode can map too
-        self.operations: dict = {(0, 2): self.call,
-                                 (0, 0): self.display_clear,
-                                 (0, 1): self.flow_return,
-                                 (1, 0): self.flow_goto,
-                                 (2, 0): self.call_subrutine,
-                                 (3, 0): self.skip_if_eqv,
-                                 (4, 0): self.skip_if_neqv,
-                                 (5, 0): self.skip_if_eq,
-                                 (6, 0): self.set_val_const,
-                                 (7, 0): self.add_val_const,
-                                 (8, 0): self.assign_reg,
-                                 (8, 1): self.bit_op_or,
-                                 (8, 2): self.bit_op_and,
-                                 (8, 3): self.bit_op_xor,
-                                 (8, 4): self.math_add,
-                                 (8, 5): self.math_sub,
-                                 (8, 6): self.bit_op_right_shift,
-                                 (8, 7): self.math_sub_regs,
-                                 (8, 0xE): self.bit_op_left_shift,
-                                 (9, 0): self.skip_if_neqr,
-                                 (0xA, 0): self.mem_set,
-                                 (0xB, 0): self.flow_jmp,
-                                 (0xC, 0): self.random_valr,
-                                 (0xD, 0): self.display,
-                                 (0xE, 0x9E): self.key_op_skip_eq,
-                                 (0xE, 0xA1): self.key_op_skip_neq,
-                                 (0xF, 0x7): self.timer_get_delay,
-                                 (0xF, 0xA): self.key_op_get_key,
-                                 (0xF, 0x15): self.set_delay_timer,
-                                 (0xF, 0x18): self.set_sound_timer,
-                                 (0xF, 0x1E): self.mem_add,
-                                 (0xF, 0x29): self.mem_set_spritaddr,
-                                 (0xF, 0x33): self.binary_coded_decimal_store,
-                                 (0xF, 0x55): self.mem_reg_dump,
-                                 (0xF, 0x65): self.mem_reg_load,
-                                 }
+        self.operations: dict = {
+            (0, 2): self.call,
+            (0, 0): self.display_clear,
+            (0, 1): self.flow_return,
+            (1, 0): self.flow_goto,
+            (2, 0): self.call_subrutine,
+            (3, 0): self.skip_if_eqv,
+            (4, 0): self.skip_if_neqv,
+            (5, 0): self.skip_if_eq,
+            (6, 0): self.set_val_const,
+            (7, 0): self.add_val_const,
+            (8, 0): self.assign_reg,
+            (8, 1): self.bit_op_or,
+            (8, 2): self.bit_op_and,
+            (8, 3): self.bit_op_xor,
+            (8, 4): self.math_add,
+            (8, 5): self.math_sub,
+            (8, 6): self.bit_op_right_shift,
+            (8, 7): self.math_sub_regs,
+            (8, 0xE): self.bit_op_left_shift,
+            (9, 0): self.skip_if_neqr,
+            (0xA, 0): self.mem_set,
+            (0xB, 0): self.flow_jmp,
+            (0xC, 0): self.random_valr,
+            (0xD, 0): self.display,
+            (0xE, 0x9E): self.key_op_skip_eq,
+            (0xE, 0xA1): self.key_op_skip_neq,
+            (0xF, 0x7): self.timer_get_delay,
+            (0xF, 0xA): self.key_op_get_key,
+            (0xF, 0x15): self.set_delay_timer,
+            (0xF, 0x18): self.set_sound_timer,
+            (0xF, 0x1E): self.mem_add,
+            (0xF, 0x29): self.mem_set_spritaddr,
+            (0xF, 0x33): self.binary_coded_decimal_store,
+            (0xF, 0x55): self.mem_reg_dump,
+            (0xF, 0x65): self.mem_reg_load,
+        }
 
     def __str__(self):
         return f"{self.instruction_executed}"
@@ -58,10 +62,12 @@ class C8cpu():
         try:
             if self.big_endianness:
                 instruction = self.construct_opcode(
-                    emulator.memory[emulator.pc], emulator.memory[emulator.pc + 1])
+                    emulator.memory[emulator.pc],
+                    emulator.memory[emulator.pc + 1])
             else:
                 instruction = self.construct_opcode(
-                    emulator.memory[emulator.pc + 1], emulator.memory[emulator.pc])
+                    emulator.memory[emulator.pc + 1],
+                    emulator.memory[emulator.pc])
         except IndexError:
             print(f"pc {emulator.pc} out of memory bounds")
             exit(0)
@@ -133,7 +139,6 @@ class C8cpu():
 
     def get_y(self, opcode: int) -> int:
         # opcode 0x8ABD -> 0xB
-        # return (opcode >> 4) & 0xF
         return (opcode & 0x00F0) >> 4
 
     def get_address(self, opcode: int) -> int:
@@ -180,11 +185,13 @@ class C8cpu():
         # opcode 0x00EE
         # return from subrutine
         emulator.pc = self.construct_opcode(
-            emulator.memory[emulator.stackpointer - 2], emulator.memory[emulator.stackpointer - 1])
+            emulator.memory[emulator.stackpointer - 2],
+            emulator.memory[emulator.stackpointer - 1])
         emulator.stackpointer -= 2
         if self.verbose:
             print(
-                f"Returning from subrutine!, opcode: {hex(opcode)}, pc: {hex(emulator.pc)}")
+                f"Returning from subrutine!, opcode: {hex(opcode)}, pc: {hex(emulator.pc)}"
+            )
 
     def flow_goto(self, opcode, emulator):
         # opcode 0x1NNN
@@ -203,7 +210,8 @@ class C8cpu():
         emulator.pc = self.get_address(opcode)
         if self.verbose:
             print(
-                f"Calling subrutine @ {opcode & 0x0FFF}, opcode: {opcode}, pc is now: {emulator.pc}, stackpointer is: {emulator.stackpointer}")
+                f"Calling subrutine @ {opcode & 0x0FFF}, opcode: {opcode}, pc is now: {emulator.pc}, stackpointer is: {emulator.stackpointer}"
+            )
 
     def skip_if_eqv(self, opcode, emulator):
         # opcode 0x3XNN
@@ -212,7 +220,8 @@ class C8cpu():
         value = self.get_large_const(opcode)
         if self.verbose:
             print(
-                f"Skipping next instruction if: {emulator.registers[x]} == {value}, opcode: {opcode}")
+                f"Skipping next instruction if: {emulator.registers[x]} == {value}, opcode: {opcode}"
+            )
         if emulator.registers[x] == value:
             if self.verbose:
                 print("Skipping")
@@ -225,7 +234,8 @@ class C8cpu():
         value = self.get_large_const(opcode)
         if self.verbose:
             print(
-                f"Skipping next instruction if: {emulator.registers[x]} != {value}, opcode: {opcode}")
+                f"Skipping next instruction if: {emulator.registers[x]} != {value}, opcode: {opcode}"
+            )
         if emulator.registers[x] != value:
             if self.verbose:
                 print("Skipping")
@@ -238,7 +248,8 @@ class C8cpu():
         y = self.get_y(opcode)
         if self.verbose:
             print(
-                f"Skipping next instruction if: {emulator.registers[x]} != {emulator.registers[y]}, opcode: {opcode}")
+                f"Skipping next instruction if: {emulator.registers[x]} != {emulator.registers[y]}, opcode: {opcode}"
+            )
         if emulator.registers[x] == emulator.registers[y]:
             if self.verbose:
                 print("Skipping")
@@ -261,7 +272,8 @@ class C8cpu():
         value = self.get_large_const(opcode)
         if self.verbose:
             print(
-                f"Adding {value} to x, {x} {emulator.registers[x]}, opcode: {opcode}")
+                f"Adding {value} to x, {x} {emulator.registers[x]}, opcode: {opcode}"
+            )
         emulator.registers[x] += value
         emulator.registers[x] &= 0xFF
 
@@ -272,7 +284,8 @@ class C8cpu():
         y = self.get_y(opcode)
         if self.verbose:
             print(
-                f"Assigning {emulator.registers[y]}, {y} to {emulator.registers[x]}, {x}, opcode: {opcode}")
+                f"Assigning {emulator.registers[y]}, {y} to {emulator.registers[x]}, {x}, opcode: {opcode}"
+            )
         emulator.registers[x] = emulator.registers[y]
         emulator.registers[x] &= 0xFF
 
@@ -283,7 +296,8 @@ class C8cpu():
         y = self.get_y(opcode)
         if self.verbose:
             print(
-                f"Oring {emulator.registers[y]}, {y} to {emulator.registers[x]} {x}, opcode: {opcode}")
+                f"Oring {emulator.registers[y]}, {y} to {emulator.registers[x]} {x}, opcode: {opcode}"
+            )
         emulator.registers[x] |= emulator.registers[y]
         emulator.registers[x] &= 0xFF
 
@@ -294,7 +308,8 @@ class C8cpu():
         y = self.get_y(opcode)
         if self.verbose:
             print(
-                f"Anding {emulator.registers[y]}, {y} to {emulator.registers[x]} {x}, opcode: {opcode}")
+                f"Anding {emulator.registers[y]}, {y} to {emulator.registers[x]} {x}, opcode: {opcode}"
+            )
         emulator.registers[x] &= emulator.registers[y]
         emulator.registers[x] &= 0xFF
 
@@ -305,7 +320,8 @@ class C8cpu():
         y = self.get_y(opcode)
         if self.verbose:
             print(
-                f"Xoring {emulator.registers[y]}, {y} to {emulator.registers[x]} {x}, opcode: {opcode}")
+                f"Xoring {emulator.registers[y]}, {y} to {emulator.registers[x]} {x}, opcode: {opcode}"
+            )
         emulator.registers[x] ^= emulator.registers[y]
         emulator.registers[x] &= 0xFF
 
@@ -318,11 +334,11 @@ class C8cpu():
             print("Adding: {emulator.register[x]} += {emulator.register[y]}")
         if emulator.registers[x] + emulator.registers[y] > 255:
             emulator.registers[0xF] = 1
-            emulator.registers[x] = (
-                emulator.registers[x] + emulator.registers[y]) - 256
+            emulator.registers[x] = (emulator.registers[x] +
+                                     emulator.registers[y]) - 256
         else:
-            emulator.registers[x] = (
-                emulator.registers[x] + emulator.registers[y])
+            emulator.registers[x] = (emulator.registers[x] +
+                                     emulator.registers[y])
             emulator.registers[0xF] = 0
         emulator.registers[x] &= 0xFF
         if self.verbose:
@@ -335,7 +351,8 @@ class C8cpu():
         y = self.get_y(opcode)
         if self.verbose:
             print(
-                "Substracting: {emulator.register[x]} -= {emulator.register[y]}")
+                "Substracting: {emulator.register[x]} -= {emulator.register[y]}"
+            )
         if emulator.registers[x] - emulator.registers[y] < 0:
             emulator.registers[x] = 256 + \
                 emulator.registers[x] - emulator.registers[y]
@@ -368,7 +385,8 @@ class C8cpu():
         y = self.get_y(opcode)
         if self.verbose:
             print(
-                "Substracting: {emulator.register[x]} = {emulator.register[y]} - emulator.registers[x]")
+                "Substracting: {emulator.register[x]} = {emulator.register[y]} - emulator.registers[x]"
+            )
         if emulator.registers[y] > emulator.registers[x]:
             emulator.registers[x] = emulator.registers[y] - \
                 emulator.registers[x]
@@ -397,7 +415,8 @@ class C8cpu():
         y = self.get_y(opcode)
         if self.verbose:
             print(
-                f"Skipping next instruction if: {emulator.registers[x]} != {emulator.registers[y]}, opcode: {opcode}")
+                f"Skipping next instruction if: {emulator.registers[x]} != {emulator.registers[y]}, opcode: {opcode}"
+            )
         if emulator.registers[x] != emulator.registers[y]:
             if self.verbose:
                 print("skipping")
@@ -429,8 +448,8 @@ class C8cpu():
         x = self.get_x(opcode)
         y = self.get_y(opcode)
         value = self.get_small_const(opcode)
-        emulator.screen.display(
-            emulator, emulator.registers[x], emulator.registers[y], value)
+        emulator.screen.display(emulator, emulator.registers[x],
+                                emulator.registers[y], value)
 
     def key_op_skip_eq(self, opcode, emulator):
         # opcode EX9E
